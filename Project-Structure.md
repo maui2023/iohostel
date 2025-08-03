@@ -1,3 +1,6 @@
+## 📁 Project Folder Structure
+
+```
 hostel-checkin-out/
 │
 ├── .env                      # Contains config like HOSTEL_NAME, DB credentials
@@ -59,4 +62,25 @@ hostel-checkin-out/
 ├── logout.php                # Universal logout
 ├── composer.json             # (optional) if you use libraries
 └── README.md                 # Project info
- 
+```
+
+---
+
+### 🌐 `.env` Sample
+
+```env
+HOSTEL_NAME=Asrama Aman
+DB_HOST=localhost
+DB_USER=root
+DB_PASS=password
+DB_NAME=hostel_system
+```
+
+---
+
+### ✅ Notes
+
+* All roles are **separated logically**: views, controllers, and dashboards.
+* QR codes are saved in `/public/qr/` and linked via student record.
+* Guard scans go to `scan.php`, which processes the student ID/token and prompts for In/Out.
+* WhatsApp messages are built in `helpers/whatsapp.php`.

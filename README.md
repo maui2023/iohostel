@@ -49,7 +49,7 @@ DB_PORT=3306
 DB_NAME=hostel_test
 DB_USER=root
 DB_PASS=
-BASE_URL=http://localhost/hostel-checkin-out/public
+BASE_URL=http://lyourdomain.com/hostel-checkin-out/public
 SESSION_SECRET=supersecret123
 ```
 
@@ -109,5 +109,3 @@ It's designed to be:
 
 Pull requests and donations are always welcome!
 Thank you for supporting open-source education tools.
-
-```
