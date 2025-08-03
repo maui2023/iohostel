@@ -1,0 +1,30 @@
+{
+    "name": "iohostel/checkin-system",
+    "description": "Hostel Check-In/Out System with QR Code Integration",
+    "type": "project",
+    "require": {
+        "php": ">=8.3",
+        "endroid/qr-code": "^5.0",
+        "vlucas/phpdotenv": "^5.5"
+    },
+    "autoload": {
+        "psr-4": {
+            "App\\": "src/",
+            "Controllers\\": "controllers/",
+            "Models\\": "models/",
+            "Helpers\\": "helpers/"
+        }
+    },
+    "config": {
+        "optimize-autoloader": true,
+        "preferred-install": "dist",
+        "sort-packages": true
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true,
+    "scripts": {
+        "post-install-cmd": [
+            "@php -r \"file_exists('.env') || copy('.env.example', '.env');\""
+        ]
+    }
+}

@@ -1,0 +1,588 @@
+/* Hostel Check-In/Out System - Main Stylesheet */
+
+/* Import Bootstrap 5.3 */
+@import url('https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css');
+@import url('https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css');
+
+/* Custom CSS Variables */
+:root {
+    --primary-color: #0d6efd;
+    --secondary-color: #6c757d;
+    --success-color: #198754;
+    --danger-color: #dc3545;
+    --warning-color: #ffc107;
+    --info-color: #0dcaf0;
+    --light-color: #f8f9fa;
+    --dark-color: #212529;
+    --hostel-primary: #2c3e50;
+    --hostel-secondary: #3498db;
+    --hostel-accent: #e74c3c;
+}
+
+/* Global Styles */
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: var(--light-color);
+    color: var(--dark-color);
+    line-height: 1.6;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+/* Header Styles */
+.navbar-brand {
+    font-weight: bold;
+    font-size: 1.5rem;
+}
+
+.navbar-custom {
+    background-color: var(--hostel-primary) !important;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.navbar-custom .navbar-brand,
+.navbar-custom .nav-link {
+    color: white !important;
+}
+
+.navbar-custom .nav-link:hover {
+    color: var(--hostel-secondary) !important;
+}
+
+/* Layout Styles */
+.main-wrapper {
+    display: flex;
+    min-height: 100vh;
+    padding-top: 56px; /* Account for fixed navbar */
+}
+
+.main-content {
+    flex: 1;
+    padding: 20px;
+    transition: margin-left 0.3s ease;
+    min-height: calc(100vh - 56px);
+}
+
+.main-content.with-sidebar {
+    margin-left: 100px;
+}
+
+.main-content.without-sidebar {
+    margin-left: 0;
+}
+
+/* Sidebar Styles */
+.sidebar {
+    position: fixed;
+    top: 56px;
+    left: 0;
+    width: 240px;
+    height: calc(100vh - 56px);
+    background: white;
+    border-right: 1px solid #dee2e6;
+    z-index: 1000;
+    overflow-y: auto;
+    transition: transform 0.3s ease;
+}
+
+.sidebar.collapsed {
+    transform: translateX(-240px);
+}
+
+/* Sidebar Toggle Button for Desktop */
+.sidebar-toggle {
+    position: fixed;
+    top: 10px;
+    left: 10px;
+    z-index: 1001;
+    background: var(--primary-color);
+    border: none;
+    color: white;
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+}
+
+.sidebar-toggle:hover {
+    background: var(--hostel-primary);
+    transform: scale(1.05);
+}
+
+@media (min-width: 992px) {
+    .sidebar-toggle {
+        display: flex;
+    }
+}
+
+.sidebar-content {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    padding: 12px;
+}
+
+.sidebar-header {
+    border-bottom: 1px solid #dee2e6;
+    padding-bottom: 12px;
+    margin-bottom: 15px;
+}
+
+.sidebar-nav .nav-link {
+    color: var(--dark-color);
+    padding: 10px 14px;
+    margin-bottom: 4px;
+    border-radius: 6px;
+    transition: all 0.3s ease;
+    border: none;
+    font-size: 0.9rem;
+}
+
+.sidebar-nav .nav-link:hover {
+    background-color: var(--light-color);
+    color: var(--primary-color);
+    transform: translateX(5px);
+}
+
+.sidebar-nav .nav-link.active {
+    background-color: var(--primary-color);
+    color: white;
+}
+
+.sidebar-nav .nav-link i {
+    width: 20px;
+    text-align: center;
+}
+
+.sidebar-footer {
+    margin-top: auto;
+    padding: 20px 0 0 0;
+    border-top: 1px solid #dee2e6;
+}
+
+.quick-actions {
+    position: sticky;
+    bottom: 0;
+    background: white;
+    padding: 15px 0;
+    border-top: 1px solid #dee2e6;
+    margin-top: auto;
+}
+
+.quick-actions .btn {
+    transition: all 0.3s ease;
+    margin-bottom: 8px;
+    font-weight: 500;
+    border-radius: 6px;
+}
+
+.quick-actions .btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.quick-actions .btn:last-child {
+    margin-bottom: 0;
+}
+
+.quick-actions .btn i {
+    font-size: 0.9rem;
+}
+
+/* Hide Quick Actions in desktop mode */
+@media (min-width: 992px) {
+    .quick-actions {
+        display: none;
+    }
+}
+
+/* Mobile Navigation */
+.mobile-nav .nav-link {
+    color: var(--dark-color);
+    padding: 15px 20px;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.mobile-nav .nav-link:hover,
+.mobile-nav .nav-link.active {
+    background-color: var(--primary-color);
+    color: white;
+}
+
+/* Footer Styles */
+.footer {
+    margin-top: auto;
+    padding: 15px 0;
+    background-color: white;
+    border-top: 1px solid #dee2e6;
+    position: relative;
+    z-index: 999;
+}
+
+/* Main content wrapper */
+.content-wrapper {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Loading Overlay */
+.loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+    color: white;
+}
+
+.loading-spinner {
+    text-align: center;
+}
+
+/* Responsive Design */
+@media (max-width: 991.98px) {
+    .main-content.with-sidebar {
+        margin-left: 0;
+    }
+    
+    .sidebar {
+        display: none;
+    }
+}
+
+@media (max-width: 767.98px) {
+    .main-content {
+        padding: 10px 15px;
+    }
+    
+    .navbar-brand {
+        font-size: 1.2rem;
+    }
+    
+    .fs-2 {
+        font-size: 1.5rem !important;
+    }
+}
+
+/* Login Pages */
+.login-container {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, var(--hostel-primary) 0%, var(--hostel-secondary) 100%);
+}
+
+.login-card {
+    background: white;
+    border-radius: 15px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+    padding: 2rem;
+    width: 100%;
+    max-width: 400px;
+}
+
+.login-header {
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+.login-header h2 {
+    color: var(--hostel-primary);
+    font-weight: bold;
+}
+
+.login-header .role-badge {
+    background-color: var(--hostel-secondary);
+    color: white;
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.875rem;
+    margin-top: 0.5rem;
+    display: inline-block;
+}
+
+/* Dashboard Styles */
+.dashboard-header {
+    background: linear-gradient(135deg, var(--hostel-primary) 0%, var(--hostel-secondary) 100%);
+    color: white;
+    padding: 2rem 0;
+    margin-bottom: 2rem;
+}
+
+.dashboard-card {
+    border: none;
+    border-radius: 10px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    transition: transform 0.2s ease-in-out;
+    margin-bottom: 1.5rem;
+}
+
+.dashboard-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+}
+
+.stat-card {
+    background: white;
+    border-left: 4px solid var(--hostel-secondary);
+}
+
+.stat-card.success {
+    border-left-color: var(--success-color);
+}
+
+.stat-card.warning {
+    border-left-color: var(--warning-color);
+}
+
+.stat-card.danger {
+    border-left-color: var(--danger-color);
+}
+
+/* QR Code Styles */
+.qr-container {
+    text-align: center;
+    padding: 2rem;
+    background: white;
+    border-radius: 10px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+.qr-code {
+    margin: 1rem auto;
+    padding: 1rem;
+    background: white;
+    border: 2px solid var(--hostel-primary);
+    border-radius: 10px;
+    display: inline-block;
+}
+
+/* Scanner Styles */
+.scanner-container {
+    background: white;
+    border-radius: 10px;
+    padding: 2rem;
+    text-align: center;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+.scanner-frame {
+    border: 3px solid var(--hostel-secondary);
+    border-radius: 10px;
+    padding: 1rem;
+    margin: 1rem auto;
+    max-width: 300px;
+    min-height: 300px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--light-color);
+}
+
+/* Action Buttons */
+.action-btn {
+    padding: 0.75rem 1.5rem;
+    font-weight: bold;
+    border-radius: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    transition: all 0.2s ease-in-out;
+}
+
+.btn-checkin {
+    background-color: var(--success-color);
+    border-color: var(--success-color);
+    color: white;
+}
+
+.btn-checkin:hover {
+    background-color: #157347;
+    border-color: #146c43;
+    transform: translateY(-1px);
+}
+
+.btn-checkout {
+    background-color: var(--hostel-accent);
+    border-color: var(--hostel-accent);
+    color: white;
+}
+
+.btn-checkout:hover {
+    background-color: #c0392b;
+    border-color: #b02a1b;
+    transform: translateY(-1px);
+}
+
+/* Tables */
+.table-custom {
+    background: white;
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+.table-custom thead {
+    background-color: var(--hostel-primary);
+    color: white;
+}
+
+.table-custom tbody tr:hover {
+    background-color: rgba(52, 152, 219, 0.1);
+}
+
+/* Status Badges */
+.status-active {
+    background-color: var(--success-color);
+    color: white;
+}
+
+.status-disabled {
+    background-color: var(--secondary-color);
+    color: white;
+}
+
+.status-in {
+    background-color: var(--success-color);
+    color: white;
+}
+
+.status-out {
+    background-color: var(--warning-color);
+    color: var(--dark-color);
+}
+
+/* Forms */
+.form-custom {
+    background: white;
+    padding: 2rem;
+    border-radius: 10px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+.form-custom .form-label {
+    font-weight: 600;
+    color: var(--hostel-primary);
+}
+
+.form-custom .form-control:focus {
+    border-color: var(--hostel-secondary);
+    box-shadow: 0 0 0 0.2rem rgba(52, 152, 219, 0.25);
+}
+
+/* Sidebar */
+.sidebar {
+    background-color: var(--hostel-primary);
+    min-height: 100vh;
+    padding-top: 1rem;
+}
+
+.sidebar .nav-link {
+    color: rgba(255,255,255,0.8);
+    padding: 0.75rem 1rem;
+    margin: 0.25rem 0;
+    border-radius: 5px;
+    transition: all 0.2s ease-in-out;
+}
+
+.sidebar .nav-link:hover,
+.sidebar .nav-link.active {
+    background-color: var(--hostel-secondary);
+    color: white;
+}
+
+.sidebar .nav-link i {
+    margin-right: 0.5rem;
+    width: 20px;
+    text-align: center;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .login-card {
+        margin: 1rem;
+        padding: 1.5rem;
+    }
+    
+    .dashboard-header {
+        padding: 1rem 0;
+    }
+    
+    .scanner-frame {
+        max-width: 250px;
+        min-height: 250px;
+    }
+    
+    .sidebar {
+        min-height: auto;
+    }
+}
+
+/* Utility Classes */
+.text-hostel-primary {
+    color: var(--hostel-primary) !important;
+}
+
+.text-hostel-secondary {
+    color: var(--hostel-secondary) !important;
+}
+
+.bg-hostel-primary {
+    background-color: var(--hostel-primary) !important;
+}
+
+.bg-hostel-secondary {
+    background-color: var(--hostel-secondary) !important;
+}
+
+.border-hostel-primary {
+    border-color: var(--hostel-primary) !important;
+}
+
+.border-hostel-secondary {
+    border-color: var(--hostel-secondary) !important;
+}
+
+/* Loading Spinner */
+.loading-spinner {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border: 3px solid rgba(255,255,255,.3);
+    border-radius: 50%;
+    border-top-color: #fff;
+    animation: spin 1s ease-in-out infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* Animations */
+.fade-in {
+    animation: fadeIn 0.5s ease-in-out;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.slide-in {
+    animation: slideIn 0.3s ease-in-out;
+}
+
+@keyframes slideIn {
+    from { transform: translateX(-100%); }
+    to { transform: translateX(0); }
+}

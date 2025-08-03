@@ -1,0 +1,138 @@
+<?php
+
+// Central routing system for Hostel Check-In/Out System
+
+require_once __DIR__ . '/../config/database.php';
+require_once __DIR__ . '/../helpers/auth.php';
+
+// Get the requested page from query parameter
+$page = $_GET['page'] ?? '';
+$requestMethod = $_SERVER['REQUEST_METHOD'];
+
+// If no page specified and user is authenticated, redirect to appropriate dashboard
+if (empty($page) && isAuthenticated()) {
+    redirectToDashboard();
+    exit;
+}
+
+// Route definitions based on page parameter
+$routes = [
+    // Authentication routes
+    '' => ['view' => 'auth/login_selector'],
+    'login' => ['view' => 'auth/login_selector'],
+    'login-superadmin' => ['view' => 'auth/login_superadmin'],
+    'login-admin' => ['view' => 'auth/login_admin'],
+    'login-guard' => ['view' => 'auth/login_guard'],
+    'login-parent' => ['view' => 'auth/login_parent'],
+    'logout' => ['action' => 'logout'],
+    
+    // Dashboard routes
+    'dashboard' => ['view' => 'dashboard/dashboard', 'auth' => true],
+    'superadmin-dashboard' => ['view' => 'dashboard/superadmin', 'auth' => 'superadmin'],
+    
+    // Test route for layout
+    'test' => ['view' => 'dashboard/test'],
+    
+    // Student management routes
+    'students' => ['view' => 'dashboard/students', 'auth' => ['admin', 'superadmin']],
+    'add-student' => ['view' => 'students/create', 'auth' => ['admin', 'superadmin']],
+    'generate-qr' => ['view' => 'students/qr', 'auth' => ['admin', 'superadmin']],
+    
+    // Parent management routes
+    'parents' => ['view' => 'dashboard/parents', 'auth' => ['superadmin']],
+    
+    // Guard routes
+    'scanner' => ['view' => 'scanner/qr', 'auth' => 'guard'],
+    'manual-checkin' => ['view' => 'scanner/manual', 'auth' => 'guard'],
+    
+    // Logs and reports
+    'logs' => ['view' => 'logs/list', 'auth' => true],
+    'reports' => ['view' => 'reports/dashboard', 'auth' => ['admin', 'superadmin']],
+    
+    // Settings routes
+    'settings' => ['view' => 'settings/index', 'auth' => true],
+    'password-reset-requests' => ['view' => 'settings/reset_requests', 'auth' => ['admin', 'superadmin']],
+    
+    // Settings and profile
+    'profile' => ['view' => 'profile/edit', 'auth' => true],
+    'system-settings' => ['view' => 'settings/system', 'auth' => ['admin', 'superadmin']],
+];
+
+// Handle routing
+function handleRoute($page, $routes) {
+    if (isset($routes[$page])) {
+        $route = $routes[$page];
+        
+        // Handle special actions
+        if (isset($route['action'])) {
+            switch ($route['action']) {
+                case 'logout':
+                    // Perform logout
+                    logoutUser();
+                    
+                    // Clear any output buffers
+                    if (ob_get_level()) {
+                        ob_end_clean();
+                    }
+                    
+                    // Redirect to login page
+                    header('Location: ' . $_ENV['BASE_URL'] . '?page=login', true, 302);
+                    exit();
+                    break;
+            }
+        }
+        
+        // Check authentication if required
+        if (isset($route['auth'])) {
+            if ($route['auth'] === true) {
+                // Any authenticated user
+                if (!isAuthenticated()) {
+                    header('Location: ' . $_ENV['BASE_URL'] . '?page=login');
+                    exit;
+                }
+            } elseif (is_array($route['auth'])) {
+                // Specific roles
+                if (!isAuthenticated() || !in_array(getCurrentUserRole(), $route['auth'])) {
+                    header('Location: ' . $_ENV['BASE_URL'] . '?page=login');
+                    exit;
+                }
+            } elseif (is_string($route['auth'])) {
+                // Single role
+                if (!isAuthenticated() || !hasRole($route['auth'])) {
+                    header('Location: ' . $_ENV['BASE_URL'] . '?page=login');
+                    exit;
+                }
+            }
+        }
+        
+        // Load view file
+        $viewFile = __DIR__ . '/../views/' . $route['view'] . '.php';
+        if (file_exists($viewFile)) {
+            include $viewFile;
+        } else {
+            show404();
+        }
+    } else {
+        // Default behavior for empty page
+        if (empty($page)) {
+            if (isAuthenticated()) {
+                redirectToDashboard();
+            } else {
+                include __DIR__ . '/../views/auth/login_selector.php';
+            }
+        } else {
+            show404();
+        }
+    }
+}
+
+// 404 handler
+function show404() {
+    http_response_code(404);
+    echo "<h1>404 - Page Not Found</h1>";
+    echo "<p>The requested page could not be found.</p>";
+    echo "<a href='/'>Go to Home</a>";
+}
+
+// Execute routing
+handleRoute($page, $routes);
