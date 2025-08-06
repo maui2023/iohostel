@@ -133,11 +133,10 @@ if ($_POST['action'] === 'update_status' && isset($_POST['student_id'], $_POST['
                                         <tr>
                                             <th>#</th>
                                             <th>Student</th>
-                                            <th>Student ID</th>
-                                            <th>Contact</th>
+                                            <th>Student No</th>
+                                            <th>Class</th>
                                             <th>Parent</th>
                                             <th>Status</th>
-                                            <th>Location</th>
                                             <th>QR Code</th>
                                             <th>Registered</th>
                                             <th>Actions</th>
@@ -161,16 +160,9 @@ if ($_POST['action'] === 'update_status' && isset($_POST['student_id'], $_POST['
                                                     </div>
                                                 </td>
                                                 <td>
-                                                    <span class="badge bg-secondary"><?php echo htmlspecialchars($student['student_id']); ?></span>
+                                                    <span class="badge bg-secondary"><?php echo htmlspecialchars($student['student_no']); ?></span>
                                                 </td>
-                                                <td class="small">
-                                                    <?php if ($student['phone']): ?>
-                                                        <div><i class="bi bi-telephone"></i> <?php echo htmlspecialchars($student['phone']); ?></div>
-                                                    <?php endif; ?>
-                                                    <?php if ($student['emergency_contact']): ?>
-                                                        <div class="text-danger"><i class="bi bi-exclamation-triangle"></i> <?php echo htmlspecialchars($student['emergency_contact']); ?></div>
-                                                    <?php endif; ?>
-                                                </td>
+                                                <td><?php echo htmlspecialchars($student['class_name']); ?></td>
                                                 <td>
                                                     <?php if ($student['parent_name']): ?>
                                                         <div class="small">
@@ -191,29 +183,11 @@ if ($_POST['action'] === 'update_status' && isset($_POST['student_id'], $_POST['
                                                     <?php endif; ?>
                                                 </td>
                                                 <td>
-                                                    <?php if ($student['current_status'] === 'inside'): ?>
-                                                        <span class="badge bg-info"><i class="bi bi-house-check"></i> Inside</span>
-                                                    <?php elseif ($student['current_status'] === 'outside'): ?>
-                                                        <span class="badge bg-warning"><i class="bi bi-house-x"></i> Outside</span>
-                                                    <?php else: ?>
-                                                        <span class="badge bg-secondary">Unknown</span>
-                                                    <?php endif; ?>
+                                                    <a href="/helpers/qr.php?token=<?php echo urlencode($student['qr_token']); ?>" class="btn btn-sm btn-outline-primary" download="qr-<?php echo htmlspecialchars($student['student_no']); ?>.png">
+                                                        <i class="bi bi-qr-code"></i> Download
+                                                    </a>
                                                 </td>
-                                                <td class="text-center">
-                                                    <?php if ($student['qr_code']): ?>
-                                                        <button type="button" class="btn btn-outline-success btn-sm" 
-                                                                onclick="viewQRCode('<?php echo $student['qr_code']; ?>')" 
-                                                                title="View QR Code">
-                                                            <i class="bi bi-qr-code"></i>
-                                                        </button>
-                                                    <?php else: ?>
-                                                        <button type="button" class="btn btn-outline-warning btn-sm" 
-                                                                onclick="generateQRCode(<?php echo $student['id']; ?>)" 
-                                                                title="Generate QR Code">
-                                                            <i class="bi bi-plus-circle"></i>
-                                                        </button>
-                                                    <?php endif; ?>
-                                                </td>
+
                                                 <td class="small text-muted">
                                                     <?php echo date('M j, Y', strtotime($student['created_at'])); ?>
                                                 </td>
@@ -286,24 +260,7 @@ if ($_POST['action'] === 'update_status' && isset($_POST['student_id'], $_POST['
         <input type="hidden" name="status" id="statusValue">
     </form>
 
-    <!-- QR Code Modal -->
-    <div class="modal fade" id="qrCodeModal" tabindex="-1">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Student QR Code</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body text-center">
-                    <div id="qrCodeContainer"></div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                    <button type="button" class="btn btn-primary" onclick="downloadQRCode()">Download</button>
-                </div>
-            </div>
-        </div>
-    </div>
+
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
@@ -330,39 +287,7 @@ if ($_POST['action'] === 'update_status' && isset($_POST['student_id'], $_POST['
             window.location.href = '<?php echo $_ENV['BASE_URL']; ?>?page=edit-student&id=' + studentId;
         }
         
-        function viewQRCode(qrCode) {
-            const container = document.getElementById('qrCodeContainer');
-            container.innerHTML = '';
-            
-            QRCode.toCanvas(container, qrCode, {
-                width: 256,
-                height: 256,
-                margin: 2
-            }, function (error) {
-                if (error) {
-                    container.innerHTML = '<p class="text-danger">Error generating QR code</p>';
-                }
-            });
-            
-            new bootstrap.Modal(document.getElementById('qrCodeModal')).show();
-        }
-        
-        function generateQRCode(studentId) {
-            if (confirm('Generate QR code for this student?')) {
-                // Implement QR code generation
-                alert('QR code generation functionality to be implemented');
-            }
-        }
-        
-        function downloadQRCode() {
-            const canvas = document.querySelector('#qrCodeContainer canvas');
-            if (canvas) {
-                const link = document.createElement('a');
-                link.download = 'student-qr-code.png';
-                link.href = canvas.toDataURL();
-                link.click();
-            }
-        }
+
         
         // Auto-hide alerts after 5 seconds
         setTimeout(function() {

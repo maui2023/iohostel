@@ -20,6 +20,7 @@ $routes = [
     // Authentication routes
     '' => ['view' => 'auth/login_selector'],
     'login' => ['view' => 'auth/login_selector'],
+    'password-reset' => ['view' => 'auth/password_reset_public'],
     'login-superadmin' => ['view' => 'auth/login_superadmin'],
     'login-admin' => ['view' => 'auth/login_admin'],
     'login-guard' => ['view' => 'auth/login_guard'],
@@ -32,13 +33,17 @@ $routes = [
     
     // Test route for layout
     'test' => ['view' => 'dashboard/test'],
+    'test_upload' => ['view' => 'dashboard/test_upload'],
     
     // Student management routes
     'students' => ['view' => 'dashboard/students', 'auth' => ['admin', 'superadmin']],
-    'add-student' => ['view' => 'students/create', 'auth' => ['admin', 'superadmin']],
-    'generate-qr' => ['view' => 'students/qr', 'auth' => ['admin', 'superadmin']],
+    'add-student' => ['view' => 'dashboard/add-student', 'auth' => ['admin', 'superadmin']],
     
+    'classes' => ['view' => 'dashboard/classes', 'auth' => ['admin', 'superadmin']],
+    'add-class' => ['view' => 'dashboard/add-class', 'auth' => ['admin', 'superadmin']],
+
     // Parent management routes
+    'add-parent' => ['view' => 'dashboard/add-parent', 'auth' => ['admin', 'superadmin']],
     'parents' => ['view' => 'dashboard/parents', 'auth' => ['superadmin']],
     
     // Guard routes
@@ -56,16 +61,19 @@ $routes = [
     // Settings and profile
     'profile' => ['view' => 'profile/edit', 'auth' => true],
     'system-settings' => ['view' => 'settings/system', 'auth' => ['admin', 'superadmin']],
+
 ];
 
 // Handle routing
 function handleRoute($page, $routes) {
+    error_log("handleRoute invoked for page: " . $page . ", method: " . $_SERVER['REQUEST_METHOD']);
+    
     if (isset($routes[$page])) {
-        $route = $routes[$page];
+        $currentRoute = $routes[$page];
         
         // Handle special actions
-        if (isset($route['action'])) {
-            switch ($route['action']) {
+        if (isset($currentRoute['action'])) {
+            switch ($currentRoute['action']) {
                 case 'logout':
                     // Perform logout
                     logoutUser();
@@ -83,22 +91,26 @@ function handleRoute($page, $routes) {
         }
         
         // Check authentication if required
-        if (isset($route['auth'])) {
-            if ($route['auth'] === true) {
+        if (isset($currentRoute['auth'])) {
+            $authLog = 'isAuthenticated: ' . (isAuthenticated() ? 'true' : 'false');
+            $role = getCurrentUserRole();
+            $authLog .= ', role: ' . ($role ? $role : 'none');
+            file_put_contents(__DIR__ . '/../views/dashboard/router_test.log', 'Auth check for page: ' . $page . ' - ' . $authLog . ' at ' . date('c') . "\n", FILE_APPEND);
+            if ($currentRoute['auth'] === true) {
                 // Any authenticated user
                 if (!isAuthenticated()) {
                     header('Location: ' . $_ENV['BASE_URL'] . '?page=login');
                     exit;
                 }
-            } elseif (is_array($route['auth'])) {
+            } elseif (is_array($currentRoute['auth'])) {
                 // Specific roles
-                if (!isAuthenticated() || !in_array(getCurrentUserRole(), $route['auth'])) {
+                if (!isAuthenticated() || !in_array(getCurrentUserRole(), $currentRoute['auth'])) {
                     header('Location: ' . $_ENV['BASE_URL'] . '?page=login');
                     exit;
                 }
-            } elseif (is_string($route['auth'])) {
+            } elseif (is_string($currentRoute['auth'])) {
                 // Single role
-                if (!isAuthenticated() || !hasRole($route['auth'])) {
+                if (!isAuthenticated() || !hasRole($currentRoute['auth'])) {
                     header('Location: ' . $_ENV['BASE_URL'] . '?page=login');
                     exit;
                 }
@@ -106,7 +118,9 @@ function handleRoute($page, $routes) {
         }
         
         // Load view file
-        $viewFile = __DIR__ . '/../views/' . $route['view'] . '.php';
+        $viewFile = __DIR__ . '/../views/' . $currentRoute['view'] . '.php';
+        file_put_contents(__DIR__ . '/../views/dashboard/router_test.log', 'SESSION: ' . print_r($_SESSION, true) . ' at ' . date('c') . "\n", FILE_APPEND);
+        file_put_contents(__DIR__ . '/../views/dashboard/router_test.log', 'Routing page: ' . $page . ', route: ' . print_r($currentRoute, true) . ' at ' . date('c') . "\n", FILE_APPEND);
         if (file_exists($viewFile)) {
             include $viewFile;
         } else {

@@ -1,4 +1,5 @@
 <?php
+file_put_contents(__DIR__ . '/../index_debug.log', 'public/index.php executed at ' . date('c') . "\n", FILE_APPEND);
 
 // Main entry point for Hostel Check-In/Out System
 

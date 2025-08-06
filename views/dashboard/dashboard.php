@@ -337,9 +337,7 @@ include __DIR__ . '/../layouts/header.php';
                             <i class="bi bi-person-plus me-2"></i>Add New Student
                         </a>
                         
-                        <a href="<?php echo $_ENV['BASE_URL']; ?>?page=generate-qr" class="btn btn-success quick-action-btn">
-                            <i class="bi bi-qr-code me-2"></i>Generate QR Codes
-                        </a>
+
                         
                         <a href="<?php echo $_ENV['BASE_URL']; ?>?page=students" class="btn btn-info quick-action-btn">
                             <i class="bi bi-people me-2"></i>Manage Students

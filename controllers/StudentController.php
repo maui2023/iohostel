@@ -1,348 +1,160 @@
 <?php
-require_once 'config/database.php';
+
+require_once __DIR__ . '/../config/database.php';
 
 class StudentController {
-    private $db;
-    
-    public function __construct() {
-        $this->db = Database::getInstance()->getConnection();
+    private $conn;
+
+    public function __construct($db) {
+        $this->conn = $db;
     }
-    
-    /**
-     * Get all students with search and pagination
-     */
-    public function getAllStudents($search = '', $limit = 15, $offset = 0) {
-        try {
-            $sql = "
-                SELECT 
-                    s.id,
-                    s.name,
-                    s.student_id,
-                    s.email,
-                    s.phone,
-                    s.emergency_contact,
-                    s.status,
-                    s.current_status,
-                    s.qr_code,
-                    s.created_at,
-                    p.name as parent_name,
-                    p.email as parent_email,
-                    p.phone as parent_phone
-                FROM students s
-                LEFT JOIN parents p ON s.parent_id = p.id
-            ";
-            
-            $params = [];
-            
-            if (!empty($search)) {
-                $sql .= " WHERE (
-                    s.name LIKE :search OR 
-                    s.student_id LIKE :search OR 
-                    s.email LIKE :search OR 
-                    s.phone LIKE :search OR
-                    s.emergency_contact LIKE :search OR
-                    p.name LIKE :search OR
-                    p.email LIKE :search OR
-                    p.phone LIKE :search
-                )";
-                $params[':search'] = '%' . $search . '%';
+
+    public function createStudent($data, $file) {
+        error_log("Entering createStudent method.");
+        // Validate required fields
+        $requiredFields = ['name', 'student_no', 'class_id', 'parent_id'];
+        foreach ($requiredFields as $field) {
+            if (empty($data[$field])) {
+                return ['success' => false, 'errors' => [$field => ucfirst(str_replace('_', ' ', $field)) . ' is required.' ]];
             }
-            
-            $sql .= " ORDER BY s.created_at DESC LIMIT :limit OFFSET :offset";
-            
-            $stmt = $this->db->prepare($sql);
-            
-            foreach ($params as $key => $value) {
-                $stmt->bindValue($key, $value);
-            }
-            
-            $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
-            $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
-            
-            $stmt->execute();
-            return $stmt->fetchAll(PDO::FETCH_ASSOC);
-            
-        } catch (PDOException $e) {
-            error_log("Error fetching students: " . $e->getMessage());
-            return [];
         }
-    }
-    
-    /**
-     * Get total count of students for pagination
-     */
-    public function getTotalStudentsCount($search = '') {
-        try {
-            $sql = "SELECT COUNT(*) as total FROM students s";
-            $params = [];
-            
-            if (!empty($search)) {
-                $sql .= " LEFT JOIN parents p ON s.parent_id = p.id
-                         WHERE (
-                            s.name LIKE :search OR 
-                            s.student_id LIKE :search OR 
-                            s.email LIKE :search OR 
-                            s.phone LIKE :search OR
-                            s.emergency_contact LIKE :search OR
-                            p.name LIKE :search OR
-                            p.email LIKE :search OR
-                            p.phone LIKE :search
-                         )";
-                $params[':search'] = '%' . $search . '%';
-            }
-            
-            $stmt = $this->db->prepare($sql);
-            
-            foreach ($params as $key => $value) {
-                $stmt->bindValue($key, $value);
-            }
-            
-            $stmt->execute();
-            $result = $stmt->fetch(PDO::FETCH_ASSOC);
-            
-            return (int) $result['total'];
-            
-        } catch (PDOException $e) {
-            error_log("Error counting students: " . $e->getMessage());
-            return 0;
+        // Handle picture upload
+        $picturePath = null;
+        $uploadDir = __DIR__ . '/../public/assets/img/students/';
+        if (!is_dir($uploadDir)) {
+            mkdir($uploadDir, 0777, true);
         }
-    }
-    
-    /**
-     * Update student status
-     */
-    public function updateStudentStatus($studentId, $status) {
-        try {
-            $sql = "UPDATE students SET status = :status WHERE id = :id";
-            $stmt = $this->db->prepare($sql);
-            $stmt->bindParam(':status', $status);
-            $stmt->bindParam(':id', $studentId, PDO::PARAM_INT);
-            
-            return $stmt->execute();
-            
-        } catch (PDOException $e) {
-            error_log("Error updating student status: " . $e->getMessage());
-            return false;
+        if (!isset($file['picture']) || !is_array($file['picture']) || $file['picture']['error'] === UPLOAD_ERR_NO_FILE) {
+            return ['success' => false, 'errors' => ['picture' => 'Picture is required.' ]];
         }
-    }
-    
-    /**
-     * Get student by ID
-     */
-    public function getStudentById($id) {
-        try {
-            $sql = "
-                SELECT 
-                    s.*,
-                    p.name as parent_name,
-                    p.email as parent_email,
-                    p.phone as parent_phone
-                FROM students s
-                LEFT JOIN parents p ON s.parent_id = p.id
-                WHERE s.id = :id
-            ";
-            
-            $stmt = $this->db->prepare($sql);
-            $stmt->bindParam(':id', $id, PDO::PARAM_INT);
-            $stmt->execute();
-            
-            return $stmt->fetch(PDO::FETCH_ASSOC);
-            
-        } catch (PDOException $e) {
-            error_log("Error fetching student: " . $e->getMessage());
-            return null;
-        }
-    }
-    
-    /**
-     * Get student statistics for dashboard
-     */
-    public function getStudentStats() {
-        try {
-            $stats = [];
-            
-            // Total students
-            $sql = "SELECT COUNT(*) as total FROM students";
-            $stmt = $this->db->prepare($sql);
-            $stmt->execute();
-            $stats['total_students'] = $stmt->fetch(PDO::FETCH_ASSOC)['total'];
-            
-            // Active students
-            $sql = "SELECT COUNT(*) as total FROM students WHERE status = 'active'";
-            $stmt = $this->db->prepare($sql);
-            $stmt->execute();
-            $stats['active_students'] = $stmt->fetch(PDO::FETCH_ASSOC)['total'];
-            
-            // Students currently inside
-            $sql = "SELECT COUNT(*) as total FROM students WHERE current_status = 'inside'";
-            $stmt = $this->db->prepare($sql);
-            $stmt->execute();
-            $stats['students_inside'] = $stmt->fetch(PDO::FETCH_ASSOC)['total'];
-            
-            // Students currently outside (based on latest log entry)
-            $sql = "
-                SELECT COUNT(*) as total FROM students s
-                LEFT JOIN (
-                    SELECT student_id, action
-                    FROM inout_logs il1
-                    WHERE timestamp = (
-                        SELECT MAX(timestamp)
-                        FROM inout_logs il2
-                        WHERE il2.student_id = il1.student_id
-                    )
-                ) latest_log ON s.id = latest_log.student_id
-                WHERE s.status = 'active' AND (latest_log.action = 'out' OR latest_log.action IS NULL)
-            ";
-            $stmt = $this->db->prepare($sql);
-            $stmt->execute();
-            $stats['outside'] = $stmt->fetch(PDO::FETCH_ASSOC)['total'];
-            
-            return $stats;
-            
-        } catch (PDOException $e) {
-            error_log("Error fetching student stats: " . $e->getMessage());
-            return [
-                'total_students' => 0,
-                'active_students' => 0,
-                'students_inside' => 0,
-                'outside' => 0
+        if ($file['picture']['error'] !== UPLOAD_ERR_OK) {
+            $errorMessages = [
+                UPLOAD_ERR_INI_SIZE => 'The uploaded file exceeds the upload_max_filesize directive in php.ini.',
+                UPLOAD_ERR_FORM_SIZE => 'The uploaded file exceeds the MAX_FILE_SIZE directive that was specified in the HTML form.',
+                UPLOAD_ERR_PARTIAL => 'The uploaded file was only partially uploaded.',
+                UPLOAD_ERR_NO_TMP_DIR => 'Missing a temporary folder.',
+                UPLOAD_ERR_CANT_WRITE => 'Failed to write file to disk.',
+                UPLOAD_ERR_EXTENSION => 'A PHP extension stopped the file upload.',
             ];
+            $errorMessage = $errorMessages[$file['picture']['error']] ?? 'Unknown upload error.';
+            return ['success' => false, 'errors' => ['picture' => $errorMessage ]];
         }
-    }
-    
-    /**
-     * Create new student
-     */
-    public function createStudent($data) {
-        try {
-            // Generate unique QR token for the student
-            $qrToken = hash('sha256', uniqid($data['ic_no'], true));
-            
-            $stmt = $this->db->prepare("
-                INSERT INTO students (name, ic_no, parent_id, qr_token, status) 
-                VALUES (?, ?, ?, ?, ?)
-            ");
-            
-            $result = $stmt->execute([
-                $data['name'],
-                $data['ic_no'],
-                $data['parent_id'],
-                $qrToken,
-                $data['status'] ?? 'active'
-            ]);
-            
-            if ($result) {
-                $studentId = $this->db->lastInsertId();
-                // Generate QR code file
-                $this->generateQRCode($studentId, $qrToken);
-                return $studentId;
-            }
-            
-            return false;
-        } catch (Exception $e) {
-            error_log("Error creating student: " . $e->getMessage());
-            return false;
+        $filename = uniqid() . '_' . basename($file['picture']['name']);
+        $targetPath = $uploadDir . $filename;
+        error_log("Attempting to move uploaded file from " . $file['picture']['tmp_name'] . " to " . $targetPath);
+        $moveResult = move_uploaded_file($file['picture']['tmp_name'], $targetPath);
+        error_log("move_uploaded_file result: " . ($moveResult ? 'true' : 'false'));
+        if (!$moveResult) {
+            $lastError = error_get_last();
+            error_log("Failed to move uploaded file to " . $targetPath . ". Error: " . ($lastError ? $lastError['message'] : 'Unknown error') . ". File details: name=" . $file['picture']['name'] . ", type=" . $file['picture']['type'] . ", tmp_name=" . $file['picture']['tmp_name'] . ", error=" . $file['picture']['error'] . ", size=" . $file['picture']['size']);
+            return ['success' => false, 'errors' => ['picture' => 'Failed to upload picture.' ]];
         }
-    }
-    
-    /**
-     * Update student information
-     */
-    public function updateStudent($id, $data) {
+        $picturePath = '/assets/img/students/' . $filename;
+        error_log("File moved successfully. Picture path: " . $picturePath);
+        // Generate QR token (simple example)
+        $qrToken = bin2hex(random_bytes(16));
+        $sql = "INSERT INTO students (name, student_no, class_id, parent_id, gender, religion, race, picture, qr_token) VALUES (:name, :student_no, :class_id, :parent_id, :gender, :religion, :race, :picture, :qr_token)";
         try {
-            $sql = "
-                UPDATE students 
-                SET name = :name, student_id = :student_id, email = :email, 
-                    phone = :phone, emergency_contact = :emergency_contact, 
-                    parent_id = :parent_id, updated_at = NOW()
-                WHERE id = :id
-            ";
-            
-            $stmt = $this->db->prepare($sql);
+            $stmt = $this->conn->prepare($sql);
+            // Bind parameters
             $stmt->bindParam(':name', $data['name']);
-            $stmt->bindParam(':student_id', $data['student_id']);
-            $stmt->bindParam(':email', $data['email']);
-            $stmt->bindParam(':phone', $data['phone']);
-            $stmt->bindParam(':emergency_contact', $data['emergency_contact']);
+            $stmt->bindParam(':student_no', $data['student_no']);
+            $stmt->bindParam(':class_id', $data['class_id'], PDO::PARAM_INT);
             $stmt->bindParam(':parent_id', $data['parent_id'], PDO::PARAM_INT);
-            $stmt->bindParam(':id', $id, PDO::PARAM_INT);
-            
-            return $stmt->execute();
-            
-        } catch (PDOException $e) {
-            error_log("Error updating student: " . $e->getMessage());
-            return false;
-        }
-    }
-    
-    /**
-     * Generate QR code for student
-     */
-    public function generateQRCode($studentId) {
-        try {
-            // Generate unique QR code
-            $qrCode = 'STU_' . $studentId . '_' . time() . '_' . bin2hex(random_bytes(8));
-            
-            $sql = "UPDATE students SET qr_code = :qr_code WHERE id = :id";
-            $stmt = $this->db->prepare($sql);
-            $stmt->bindParam(':qr_code', $qrCode);
-            $stmt->bindParam(':id', $studentId, PDO::PARAM_INT);
-            
+            $stmt->bindParam(':gender', $data['gender']);
+            $stmt->bindParam(':religion', $data['religion']);
+            $stmt->bindParam(':race', $data['race']);
+            $stmt->bindParam(':picture', $picturePath);
+            $stmt->bindParam(':qr_token', $qrToken);
             if ($stmt->execute()) {
-                return $qrCode;
+                return ['success' => true, 'message' => 'Student created successfully.', 'student_id' => $this->conn->lastInsertId()];
+            } else {
+                $errorInfo = $stmt->errorInfo();
+                error_log("PDO Error: " . $errorInfo[2]);
+                return ['success' => false, 'errors' => ['db_error' => 'Failed to create student. Please try again.' ]];
             }
-            
-            return false;
-            
         } catch (PDOException $e) {
-            error_log("Error generating QR code: " . $e->getMessage());
-            return false;
+            error_log("PDO Exception: " . $e->getMessage());
+            return ['success' => false, 'errors' => ['db_error' => 'Failed to create student: ' . $e->getMessage() ]];
         }
     }
-    
-    /**
-     * Update student location status
-     */
-    public function updateStudentLocation($studentId, $status) {
-        try {
-            $sql = "UPDATE students SET current_status = :status WHERE id = :id";
-            $stmt = $this->db->prepare($sql);
-            $stmt->bindParam(':status', $status);
-            $stmt->bindParam(':id', $studentId, PDO::PARAM_INT);
-            
-            return $stmt->execute();
-            
-        } catch (PDOException $e) {
-            error_log("Error updating student location: " . $e->getMessage());
-            return false;
+
+    public function getStudents($search = '', $limit = 10, $offset = 0, $classId = '', $gender = '', $order = 'DESC') {
+        $query = "SELECT s.*, c.name as class_name, u.name as parent_name FROM students s LEFT JOIN classes c ON s.class_id = c.id LEFT JOIN users u ON s.parent_id = u.id WHERE u.role = 'parent'";
+        $params = [];
+        $conditions = [];
+        if (!empty($search)) {
+            $conditions[] = "(s.name LIKE :search OR s.student_no LIKE :search)";
+            $params[':search'] = '%' . $search . '%';
         }
+        if (!empty($classId)) {
+            $conditions[] = "s.class_id = :class_id";
+            $params[':class_id'] = $classId;
+        }
+        if (!empty($gender)) {
+            $conditions[] = "s.gender = :gender";
+            $params[':gender'] = $gender;
+        }
+        if ($conditions) {
+            $query .= ' AND ' . implode(' AND ', $conditions);
+        }
+        $query .= " ORDER BY s.id " . ($order === 'ASC' ? 'ASC' : 'DESC');
+        $query .= " LIMIT :limit OFFSET :offset";
+        $stmt = $this->conn->prepare($query);
+        foreach ($params as $key => &$val) {
+            $stmt->bindParam($key, $val);
+        }
+        $stmt->bindParam(':limit', $limit, PDO::PARAM_INT);
+        $stmt->bindParam(':offset', $offset, PDO::PARAM_INT);
+        $stmt->execute();
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
-    
-    /**
-     * Get student by QR code
-     */
-    public function getStudentByQRCode($qrCode) {
-        try {
-            $sql = "
-                SELECT 
-                    s.*,
-                    p.name as parent_name,
-                    p.phone as parent_phone
-                FROM students s
-                LEFT JOIN parents p ON s.parent_id = p.id
-                WHERE s.qr_code = :qr_code
-            ";
-            
-            $stmt = $this->db->prepare($sql);
-            $stmt->bindParam(':qr_code', $qrCode);
-            $stmt->execute();
-            
-            return $stmt->fetch(PDO::FETCH_ASSOC);
-            
-        } catch (PDOException $e) {
-            error_log("Error fetching student by QR code: " . $e->getMessage());
-            return null;
+
+    public function getStudentById($id) {
+        $query = "SELECT s.*, c.name as class_name, u.name as parent_name FROM students s LEFT JOIN classes c ON s.class_id = c.id LEFT JOIN users u ON s.parent_id = u.id WHERE s.id = :id AND u.role = 'parent' LIMIT 0,1";
+        $stmt = $this->conn->prepare($query);
+        $stmt->bindParam(':id', $id);
+        $stmt->execute();
+        $data = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $data;
+    }
+
+    public function updateStudent($data, $file) {
+        // Similar logic to createStudent but for update
+        // ... (implementation for update)
+    }
+
+    public function deleteStudent($id) {
+        $query = "DELETE FROM students WHERE id = :id";
+        $stmt = $this->conn->prepare($query);
+        $stmt->bindParam(':id', $id);
+        return $stmt->execute();
+    }
+
+    public function countStudents($search = '', $classId = '', $gender = '') {
+        $query = "SELECT COUNT(*) FROM students s LEFT JOIN users u ON s.parent_id = u.id WHERE u.role = 'parent'";
+        $params = [];
+        $conditions = [];
+        if (!empty($search)) {
+            $conditions[] = "(s.name LIKE :search OR s.student_no LIKE :search)";
+            $params[':search'] = '%' . $search . '%';
         }
+        if (!empty($classId)) {
+            $conditions[] = "s.class_id = :class_id";
+            $params[':class_id'] = $classId;
+        }
+        if (!empty($gender)) {
+            $conditions[] = "s.gender = :gender";
+            $params[':gender'] = $gender;
+        }
+        if ($conditions) {
+            $query .= ' AND ' . implode(' AND ', $conditions);
+        }
+        $stmt = $this->conn->prepare($query);
+        foreach ($params as $key => &$val) {
+            $stmt->bindParam($key, $val);
+        }
+        $stmt->execute();
+        return (int)$stmt->fetchColumn();
     }
 }
-?>

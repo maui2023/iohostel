@@ -7,7 +7,7 @@
  * @return bool
  */
 function isAuthenticated() {
-    return isset($_SESSION['user_id']) && isset($_SESSION['user_role']);
+    return isset($_SESSION['user_id']) && isset($_SESSION['user_roles']) && is_array($_SESSION['user_roles']);
 }
 
 /**
@@ -15,26 +15,33 @@ function isAuthenticated() {
  * @param string $role Required role
  * @return bool
  */
-function hasRole($role) {
+function hasRole($requiredRole) {
     if (!isAuthenticated()) {
         return false;
     }
     
-    $userRole = $_SESSION['user_role'];
+    $userRoles = $_SESSION['user_roles'];
     
-    // Role hierarchy: superadmin can access admin functions, admin can access guard functions
-    switch ($role) {
-        case 'superadmin':
-            return $userRole === 'superadmin';
-        case 'admin':
-            return in_array($userRole, ['superadmin', 'admin']);
-        case 'guard':
-            return in_array($userRole, ['superadmin', 'admin', 'guard']);
-        case 'parent':
-            return $userRole === 'parent';
-        default:
-            return false;
+    // Check if the user has the required role directly
+    if (in_array($requiredRole, $userRoles)) {
+        return true;
     }
+
+    // Role hierarchy: superadmin can access admin functions, admin can access guard functions
+    // This logic assumes a hierarchical access where higher roles implicitly grant lower role permissions.
+    // If a user has 'superadmin', they can access 'admin' and 'guard' functions.
+    // If a user has 'admin', they can access 'guard' functions.
+    if (in_array('superadmin', $userRoles)) {
+        return true; // Superadmin has access to everything
+    }
+    if (in_array('admin', $userRoles) && in_array($requiredRole, ['admin', 'guard'])) {
+        return true; // Admin has access to admin and guard functions
+    }
+    if (in_array('guard', $userRoles) && $requiredRole === 'guard') {
+        return true; // Guard has access to guard functions
+    }
+
+    return false;
 }
 
 /**
@@ -49,8 +56,14 @@ function getCurrentUserId() {
  * Get current user role
  * @return string|null
  */
+function getCurrentUserRoles() {
+    return $_SESSION['user_roles'] ?? [];
+}
+
+// For backward compatibility, if a single role is still expected in some places
 function getCurrentUserRole() {
-    return $_SESSION['user_role'] ?? null;
+    $roles = getCurrentUserRoles();
+    return !empty($roles) ? $roles[0] : null;
 }
 
 /**
@@ -76,7 +89,19 @@ function loginUser($user) {
     
     // Set session data
     $_SESSION['user_id'] = $user['id'];
-    $_SESSION['user_role'] = $user['role'];
+    // Fetch all roles for the user from the database
+    $db = Database::getInstance()->getConnection();
+    $stmt = $db->prepare("SELECT role FROM user_roles WHERE user_id = ?");
+    $stmt->execute([$user['id']]);
+    $_SESSION['user_roles'] = $stmt->fetchAll(PDO::FETCH_COLUMN);
+
+    // If no roles are found, assign a default or handle error
+    if (empty($_SESSION['user_roles'])) {
+        error_log("User ID " . $user['id'] . " has no roles assigned.");
+        // Optionally, assign a 'default' role or redirect to an error page
+        // For now, we'll ensure it's an empty array if no roles are found
+        $_SESSION['user_roles'] = [];
+    }
     $_SESSION['user_name'] = $user['name'];
     $_SESSION['user_email'] = $user['email'];
     $_SESSION['user_phone'] = $user['phone'] ?? null;
@@ -188,21 +213,19 @@ function requireAuth($requiredRole = null) {
  * Redirect user to appropriate dashboard based on role
  */
 function redirectToDashboard() {
-    $role = getCurrentUserRole();
+    $userRoles = (array)getCurrentUserRoles();
     
-    switch ($role) {
-        case 'superadmin':
-        case 'admin':
-            header('Location: ?page=dashboard');
-            break;
-        case 'guard':
-            header('Location: ?page=guard-dashboard');
-            break;
-        case 'parent':
-            header('Location: ?page=parent-dashboard');
-            break;
-        default:
-            header('Location: ?page=login');
+    // Prioritize redirection based on role hierarchy or common access patterns
+    if (in_array('superadmin', $userRoles)) {
+        header('Location: ?page=superadmin-dashboard');
+    } elseif (in_array('admin', $userRoles)) {
+        header('Location: ?page=dashboard');
+    } elseif (in_array('guard', $userRoles)) {
+        header('Location: ?page=guard-dashboard');
+    } elseif (in_array('parent', $userRoles)) {
+        header('Location: ?page=parent-dashboard');
+    } else {
+        header('Location: ?page=login');
     }
     exit;
 }
@@ -238,7 +261,7 @@ function authenticateUser($emailOrPhone, $password) {
         $db = Database::getInstance()->getConnection();
         
         // Prepare query to find user by email or phone
-        $sql = "SELECT id, name, email, phone, password, role, status FROM users 
+        $sql = "SELECT id, name, email, phone, password, status FROM users 
                 WHERE (email = ? OR phone = ?) 
                 AND status = 'active' 
                 LIMIT 1";

@@ -32,8 +32,8 @@ class SuperadminController {
             $hashedPassword = password_hash($data['password'], PASSWORD_DEFAULT);
             
             // Insert admin user
-            $sql = "INSERT INTO users (name, email, phone, password, role, status, created_at) 
-                    VALUES (?, ?, ?, ?, 'admin', 'active', NOW())";
+            $sql = "INSERT INTO users (name, email, phone, password, status, created_at) 
+                    VALUES (?, ?, ?, ?, 'active', NOW())";
             
             $stmt = $this->db->prepare($sql);
             $result = $stmt->execute([
@@ -45,6 +45,10 @@ class SuperadminController {
             
             if ($result) {
                 $userId = $this->db->lastInsertId();
+                // Assign 'admin' role to the new user
+                $stmtRole = $this->db->prepare("INSERT INTO user_roles (user_id, role) VALUES (?, 'admin')");
+                $stmtRole->execute([$userId]);
+
                 return [
                     'success' => true, 
                     'message' => 'Admin account created successfully',
@@ -85,8 +89,8 @@ class SuperadminController {
             $hashedPassword = password_hash($data['password'], PASSWORD_DEFAULT);
             
             // Insert guard user
-            $sql = "INSERT INTO users (name, email, phone, password, role, status, created_at) 
-                    VALUES (?, ?, ?, ?, 'guard', 'active', NOW())";
+            $sql = "INSERT INTO users (name, email, phone, password, status, created_at) 
+                    VALUES (?, ?, ?, ?, 'active', NOW())";
             
             $stmt = $this->db->prepare($sql);
             $result = $stmt->execute([
@@ -98,6 +102,10 @@ class SuperadminController {
             
             if ($result) {
                 $userId = $this->db->lastInsertId();
+                // Assign 'guard' role to the new user
+                $stmtRole = $this->db->prepare("INSERT INTO user_roles (user_id, role) VALUES (?, 'guard')");
+                $stmtRole->execute([$userId]);
+
                 return [
                     'success' => true, 
                     'message' => 'Guard account created successfully',
@@ -114,6 +122,63 @@ class SuperadminController {
     }
     
     /**
+     * Create a new parent account
+     */
+    public function createParent($data) {
+        try {
+            // Validate input
+            $errors = $this->validateUserData($data, 'parent');
+            if (!empty($errors)) {
+                return ['success' => false, 'errors' => $errors];
+            }
+            
+            // Check if email already exists
+            if ($this->emailExists($data['email'])) {
+                return ['success' => false, 'errors' => ['email' => 'Email already exists']];
+            }
+            
+            // Check if phone already exists (if provided)
+            if (!empty($data['phone']) && $this->phoneExists($data['phone'])) {
+                return ['success' => false, 'errors' => ['phone' => 'Phone number already exists']];
+            }
+            
+            // Hash password
+            $hashedPassword = password_hash($data['password'], PASSWORD_DEFAULT);
+            
+            // Insert parent user
+            $sql = "INSERT INTO users (name, email, phone, password, status, created_at) 
+                    VALUES (?, ?, ?, ?, 'active', NOW())";
+            
+            $stmt = $this->db->prepare($sql);
+            $result = $stmt->execute([
+                $data['name'],
+                $data['email'],
+                $data['phone'] ?? null,
+                $hashedPassword
+            ]);
+            
+            if ($result) {
+                $userId = $this->db->lastInsertId();
+                // Assign 'parent' role to the new user
+                $stmtRole = $this->db->prepare("INSERT INTO user_roles (user_id, role) VALUES (?, 'parent')");
+                $stmtRole->execute([$userId]);
+
+                return [
+                    'success' => true, 
+                    'message' => 'Parent account created successfully',
+                    'user_id' => $userId
+                ];
+            } else {
+                return ['success' => false, 'errors' => ['general' => 'Failed to create parent account']];
+            }
+            
+        } catch (PDOException $e) {
+            error_log("Error creating parent: " . $e->getMessage());
+            return ['success' => false, 'errors' => ['general' => 'Database error occurred']];
+        }
+    }
+    
+    /**
      * Get all admin and guard users with pagination and search
      */
     public function getAllUsers($role = null, $search = '', $page = 1, $limit = 10) {
@@ -122,13 +187,14 @@ class SuperadminController {
             $params = [];
             
             // Base query
-            $sql = "SELECT id, name, email, phone, role, status, created_at 
-                    FROM users 
-                    WHERE role IN ('admin', 'guard')";
+            $sql = "SELECT u.id, u.name, u.email, u.phone, u.status, u.created_at, GROUP_CONCAT(ur.role) as roles
+                    FROM users u
+                    JOIN user_roles ur ON u.id = ur.user_id
+                    WHERE ur.role IN ('admin', 'guard')";
             
             // Add role filter
             if ($role) {
-                $sql .= " AND role = ?";
+                $sql .= " AND ur.role = ?";
                 $params[] = $role;
             }
             
@@ -141,7 +207,7 @@ class SuperadminController {
             }
             
             // Add ordering and pagination
-            $sql .= " ORDER BY role, name LIMIT ? OFFSET ?";
+            $sql .= " GROUP BY u.id ORDER BY u.name LIMIT ? OFFSET ?";
             $params[] = $limit;
             $params[] = $offset;
             
@@ -163,12 +229,13 @@ class SuperadminController {
         try {
             $params = [];
             
-            $sql = "SELECT COUNT(*) as total 
-                    FROM users 
-                    WHERE role IN ('admin', 'guard')";
+            $sql = "SELECT COUNT(DISTINCT u.id) as total 
+                    FROM users u
+                    JOIN user_roles ur ON u.id = ur.user_id
+                    WHERE ur.role IN ('admin', 'guard')";
             
             if ($role) {
-                $sql .= " AND role = ?";
+                $sql .= " AND ur.role = ?";
                 $params[] = $role;
             }
             
@@ -201,7 +268,7 @@ class SuperadminController {
                 return ['success' => false, 'message' => 'Invalid status'];
             }
             
-            $sql = "UPDATE users SET status = ? WHERE id = ? AND role IN ('admin', 'guard')";
+            $sql = "UPDATE users SET status = ? WHERE id = ? AND id IN (SELECT user_id FROM user_roles WHERE role IN ('admin', 'guard'))";
             $stmt = $this->db->prepare($sql);
             $result = $stmt->execute([$status, $userId]);
             
@@ -223,9 +290,11 @@ class SuperadminController {
      */
     public function getUserById($userId) {
         try {
-            $sql = "SELECT id, name, email, phone, role, status, created_at 
-                    FROM users 
-                    WHERE id = ? AND role IN ('admin', 'guard')";
+            $sql = "SELECT u.id, u.name, u.email, u.phone, u.status, u.created_at, GROUP_CONCAT(ur.role) as roles
+                    FROM users u
+                    JOIN user_roles ur ON u.id = ur.user_id
+                    WHERE u.id = ? AND ur.role IN ('admin', 'guard')
+                    GROUP BY u.id";
             
             $stmt = $this->db->prepare($sql);
             $stmt->execute([$userId]);
@@ -260,12 +329,12 @@ class SuperadminController {
             }
             
             // Prepare update query
-            $sql = "UPDATE users SET name = ?, email = ?, phone = ? WHERE id = ? AND role IN ('admin', 'guard')";
+            $sql = "UPDATE users SET name = ?, email = ?, phone = ? WHERE id = ? AND id IN (SELECT user_id FROM user_roles WHERE role IN ('admin', 'guard'))";
             $params = [$data['name'], $data['email'], $data['phone'] ?? null, $userId];
             
             // Add password update if provided
             if (!empty($data['password'])) {
-                $sql = "UPDATE users SET name = ?, email = ?, phone = ?, password = ? WHERE id = ? AND role IN ('admin', 'guard')";
+                $sql = "UPDATE users SET name = ?, email = ?, phone = ?, password = ? WHERE id = ? AND id IN (SELECT user_id FROM user_roles WHERE role IN ('admin', 'guard'))";
                 $hashedPassword = password_hash($data['password'], PASSWORD_DEFAULT);
                 $params = [$data['name'], $data['email'], $data['phone'] ?? null, $hashedPassword, $userId];
             }
@@ -286,6 +355,47 @@ class SuperadminController {
     }
     
     /**
+     * Delete a user (admin or guard)
+     */
+    public function deleteUser($userId) {
+        try {
+            // Check if user exists and is an admin/guard
+            $user = $this->getUserById($userId);
+            if (!$user || (!in_array('admin', explode(',', $user['roles'])) && !in_array('guard', explode(',', $user['roles'])))) {
+                return ['success' => false, 'message' => 'User not found or not an admin/guard'];
+            }
+
+            // Start a transaction
+            $this->db->beginTransaction();
+
+            // Delete user roles first
+            $sql = "DELETE FROM user_roles WHERE user_id = ?";
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([$userId]);
+
+            // Then delete the user
+            $sql = "DELETE FROM users WHERE id = ?";
+            $stmt = $this->db->prepare($sql);
+            $result = $stmt->execute([$userId]);
+
+            // Commit the transaction
+            $this->db->commit();
+
+            if ($result && $stmt->rowCount() > 0) {
+                return ['success' => true, 'message' => 'User deleted successfully'];
+            } else {
+                return ['success' => false, 'message' => 'User not found or no changes made'];
+            }
+            
+        } catch (PDOException $e) {
+            // Rollback the transaction on error
+            $this->db->rollBack();
+            error_log("Error deleting user: " . $e->getMessage());
+            return ['success' => false, 'message' => 'Database error occurred'];
+        }
+    }
+    
+    /**
      * Get system statistics
      */
     public function getSystemStats() {
@@ -293,19 +403,19 @@ class SuperadminController {
             $stats = [];
             
             // Total admins
-            $stmt = $this->db->query("SELECT COUNT(*) FROM users WHERE role = 'admin'");
+            $stmt = $this->db->query("SELECT COUNT(DISTINCT user_id) FROM user_roles WHERE role = 'admin'");
             $stats['total_admins'] = $stmt->fetchColumn();
             
             // Active admins
-            $stmt = $this->db->query("SELECT COUNT(*) FROM users WHERE role = 'admin' AND status = 'active'");
+            $stmt = $this->db->query("SELECT COUNT(DISTINCT ur.user_id) FROM user_roles ur JOIN users u ON ur.user_id = u.id WHERE ur.role = 'admin' AND u.status = 'active'");
             $stats['active_admins'] = $stmt->fetchColumn();
             
             // Total guards
-            $stmt = $this->db->query("SELECT COUNT(*) FROM users WHERE role = 'guard'");
+            $stmt = $this->db->query("SELECT COUNT(DISTINCT user_id) FROM user_roles WHERE role = 'guard'");
             $stats['total_guards'] = $stmt->fetchColumn();
             
             // Active guards
-            $stmt = $this->db->query("SELECT COUNT(*) FROM users WHERE role = 'guard' AND status = 'active'");
+            $stmt = $this->db->query("SELECT COUNT(DISTINCT ur.user_id) FROM user_roles ur JOIN users u ON ur.user_id = u.id WHERE ur.role = 'guard' AND u.status = 'active'");
             $stats['active_guards'] = $stmt->fetchColumn();
             
             // Total students
@@ -349,11 +459,11 @@ class SuperadminController {
             $stats['students_outside'] = $stmt->fetchColumn();
             
             // Total parents
-            $stmt = $this->db->query("SELECT COUNT(*) FROM users WHERE role = 'parent'");
+            $stmt = $this->db->query("SELECT COUNT(DISTINCT user_id) FROM user_roles WHERE role = 'parent'");
             $stats['total_parents'] = $stmt->fetchColumn();
             
             // Active parents
-            $stmt = $this->db->query("SELECT COUNT(*) FROM users WHERE role = 'parent' AND status = 'active'");
+            $stmt = $this->db->query("SELECT COUNT(DISTINCT ur.user_id) FROM user_roles ur JOIN users u ON ur.user_id = u.id WHERE ur.role = 'parent' AND u.status = 'active'");
             $stats['active_parents'] = $stmt->fetchColumn();
             
             // Students with parents

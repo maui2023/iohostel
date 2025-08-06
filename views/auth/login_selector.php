@@ -90,13 +90,13 @@ $hostelName = $_ENV['HOSTEL_NAME'] ?? 'Hostel Management';
                             </div>
                         </div>
                         
-                        <!-- Test Layout Link -->
+                        <!-- Password Reset Link -->
                         <div class="text-center mt-4">
                             <hr>
-                            <p class="text-muted small mb-2">For testing purposes:</p>
-                            <a href="<?= $_ENV['BASE_URL'] ?>?page=test" class="btn btn-outline-primary btn-sm">
-                                <i class="bi bi-eye me-1"></i>
-                                View Layout Test
+                            <p class="text-muted small mb-2">Forgot your password?</p>
+                            <a href="<?= $_ENV['BASE_URL'] ?>?page=password-reset" class="btn btn-outline-secondary btn-sm">
+                                <i class="bi bi-key me-1"></i>
+                                Request Password Reset
                             </a>
                         </div>
                         

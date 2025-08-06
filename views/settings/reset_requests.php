@@ -262,7 +262,7 @@ function sendWhatsApp(requestId) {
         if (data.success) {
             const userData = data.data;
             const message = `Hello ${userData.name},\n\nYour password reset request has been approved.\n\nYour new password is: ${userData.new_password}\n\nPlease login and change your password immediately for security.\n\nBest regards,\nHostel Management System`;
-            const whatsappUrl = `https://wa.me/${userData.phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(message)}`;
+            const whatsappUrl = `https://wa.me/6${userData.phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(message)}`;
             
             window.open(whatsappUrl, '_blank');
         } else {

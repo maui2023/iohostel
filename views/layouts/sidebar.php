@@ -28,9 +28,9 @@ switch ($currentUserRole) {
     case 'admin':
         $navigationItems = [
             ['icon' => 'speedometer2', 'label' => 'Dashboard', 'page' => 'dashboard'],
+            ['icon' => 'person-plus', 'label' => 'Add Parent', 'page' => 'add-parent'],
             ['icon' => 'person-plus', 'label' => 'Add Student', 'page' => 'add-student'],
-            ['icon' => 'people', 'label' => 'Manage Students', 'page' => 'students'],
-            ['icon' => 'qr-code', 'label' => 'Generate QR Codes', 'page' => 'generate-qr'],
+            ['icon' => 'collection', 'label' => 'Manage Classes', 'page' => 'classes'],
             ['icon' => 'clock-history', 'label' => 'Check-in/out Logs', 'page' => 'logs'],
             ['icon' => 'chat-dots', 'label' => 'WhatsApp Messages', 'page' => 'messages'],
             ['icon' => 'file-earmark-text', 'label' => 'Reports', 'page' => 'reports'],
@@ -89,12 +89,14 @@ switch ($currentUserRole) {
         <div class="sidebar-footer mt-auto">
             <div class="quick-actions">
                 <h6 class="text-muted text-uppercase fw-bold mb-2 small">Quick Actions</h6>
-                
                 <?php if ($currentUserRole === 'guard'): ?>
                     <button class="btn btn-success btn-sm w-100 mb-2" onclick="location.href='<?= $_ENV['BASE_URL'] ?>?page=scanner'">
                         <i class="bi bi-qr-code-scan me-1"></i> Scan QR
                     </button>
                 <?php elseif ($currentUserRole === 'admin'): ?>
+                    <button class="btn btn-primary btn-sm w-100 mb-2" onclick="location.href='<?= $_ENV['BASE_URL'] ?>?page=add-parent'">
+                        <i class="bi bi-person-plus me-1"></i> Add Parent
+                    </button>
                     <button class="btn btn-primary btn-sm w-100 mb-2" onclick="location.href='<?= $_ENV['BASE_URL'] ?>?page=add-student'">
                         <i class="bi bi-person-plus me-1"></i> Add Student
                     </button>
@@ -103,7 +105,6 @@ switch ($currentUserRole) {
                         <i class="bi bi-gear me-1"></i> System Status
                     </button>
                 <?php endif; ?>
-                
                 <button class="btn btn-outline-secondary btn-sm w-100" onclick="location.href='<?= $_ENV['BASE_URL'] ?>?page=logout'">
                     <i class="bi bi-box-arrow-right me-1"></i> Logout
                 </button>

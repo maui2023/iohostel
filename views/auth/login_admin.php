@@ -27,9 +27,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // Authenticate user with database
         $userData = authenticateUser($emailOrPhone, $password);
         
-        if ($userData && $userData['role'] === 'admin') {
+        if ($userData) {
             // Login successful
-            if (loginUser($userData)) {
+            if (loginUser($userData) && hasRole('admin')) {
                 $success = 'Login successful! Redirecting...';
                 header('refresh:2;url=' . $_ENV['BASE_URL'] . '?page=dashboard');
             } else {

@@ -46,7 +46,7 @@ function generateWhatsAppLink($parentPhone, $studentName, $action, $timestamp, $
     $encodedMessage = urlencode($message);
     
     // Generate WhatsApp link
-    $whatsappUrl = "https://wa.me/{$cleanPhone}?text={$encodedMessage}";
+    $whatsappUrl = "https://wa.me/6{$cleanPhone}?text={$encodedMessage}";
     
     return $whatsappUrl;
 }

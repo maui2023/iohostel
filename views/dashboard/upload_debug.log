@@ -1,0 +1,105 @@
+POST received at 2025-08-05T22:57:50+08:00
+Array
+(
+    [picture] => Array
+        (
+            [name] => kambing_biasa.jpeg
+            [full_path] => kambing_biasa.jpeg
+            [type] => image/jpeg
+            [tmp_name] => /private/var/folders/c5/6l_n1qpd4fv_whd1j_yvxll80000gn/T/phpp0punptge0ta6QRENep
+            [error] => 0
+            [size] => 37068
+        )
+
+)
+
+POST received at 2025-08-05T22:58:10+08:00
+Array
+(
+    [picture] => Array
+        (
+            [name] => kambing_biasa.jpeg
+            [full_path] => kambing_biasa.jpeg
+            [type] => image/jpeg
+            [tmp_name] => /private/var/folders/c5/6l_n1qpd4fv_whd1j_yvxll80000gn/T/php25odgp7nffqf2uRA0b8
+            [error] => 0
+            [size] => 37068
+        )
+
+)
+
+POST received at 2025-08-05T23:09:22+08:00
+Array
+(
+    [picture] => Array
+        (
+            [name] => kambing_biasa.jpeg
+            [full_path] => kambing_biasa.jpeg
+            [type] => image/jpeg
+            [tmp_name] => /private/var/folders/c5/6l_n1qpd4fv_whd1j_yvxll80000gn/T/php37ns71k1opoad3Fo286
+            [error] => 0
+            [size] => 37068
+        )
+
+)
+
+POST received at 2025-08-05T23:10:16+08:00
+Array
+(
+    [picture] => Array
+        (
+            [name] => stupid-eye.jpg
+            [full_path] => stupid-eye.jpg
+            [type] => image/jpeg
+            [tmp_name] => /private/var/folders/c5/6l_n1qpd4fv_whd1j_yvxll80000gn/T/php8fgf23e8n348fQfBrpv
+            [error] => 0
+            [size] => 41594
+        )
+
+)
+
+POST received at 2025-08-05T23:19:47+08:00
+Array
+(
+    [picture] => Array
+        (
+            [name] => Plucky Puffin.jpg
+            [full_path] => Plucky Puffin.jpg
+            [type] => image/jpeg
+            [tmp_name] => /private/var/folders/c5/6l_n1qpd4fv_whd1j_yvxll80000gn/T/phpo810qc08fivc5jcOLAd
+            [error] => 0
+            [size] => 60794
+        )
+
+)
+
+POST received at 2025-08-05T23:31:38+08:00
+Array
+(
+    [picture] => Array
+        (
+            [name] => kambing_biasa.jpeg
+            [full_path] => kambing_biasa.jpeg
+            [type] => image/jpeg
+            [tmp_name] => /private/var/folders/c5/6l_n1qpd4fv_whd1j_yvxll80000gn/T/phpks1oickf1d740iqNi77
+            [error] => 0
+            [size] => 37068
+        )
+
+)
+
+POST received at 2025-08-05T23:43:21+08:00
+Array
+(
+    [picture] => Array
+        (
+            [name] => kambing_biasa.jpeg
+            [full_path] => kambing_biasa.jpeg
+            [type] => image/jpeg
+            [tmp_name] => /private/var/folders/c5/6l_n1qpd4fv_whd1j_yvxll80000gn/T/phpigts2e3ofe661BKHmks
+            [error] => 0
+            [size] => 37068
+        )
+
+)
+

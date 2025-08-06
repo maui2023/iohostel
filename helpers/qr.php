@@ -19,68 +19,24 @@ use Endroid\QrCode\Writer\PngWriter;
  * @param string $studentName Student name for label
  * @return array Result with success status and file path or error message
  */
-function generateStudentQR($studentId, $studentName) {
-    try {
-        // Load environment variables
-        $dotenv = Dotenv\Dotenv::createImmutable(__DIR__ . '/../');
-        $dotenv->load();
-        
-        $baseUrl = $_ENV['BASE_URL'] ?? 'http://localhost';
-        $qrSavePath = $_ENV['QR_SAVE_PATH'] ?? 'public/qr/';
-        $qrPrefix = $_ENV['QR_PREFIX'] ?? 'student_';
-        
-        // Create QR directory if it doesn't exist
-        $qrDir = __DIR__ . '/../' . $qrSavePath;
-        if (!is_dir($qrDir)) {
-            mkdir($qrDir, 0755, true);
-        }
-        
-        // Generate secure token for the student
-        $token = generateSecureToken($studentId);
-        
-        // Create QR code data (URL that guard will scan)
-        $qrData = $baseUrl . '/scan?code=' . $token;
-        
-        // Generate filename
-        $filename = $qrPrefix . $studentId . '_' . time() . '.png';
-        $filePath = $qrDir . $filename;
-        
-        // Build QR code
-        $result = Builder::create()
-            ->writer(new PngWriter())
-            ->data($qrData)
-            ->encoding(new Encoding('UTF-8'))
-            ->errorCorrectionLevel(ErrorCorrectionLevel::High)
-            ->size(300)
-            ->margin(10)
-            ->roundBlockSizeMode(RoundBlockSizeMode::Margin)
-            ->labelText($studentName)
-            ->labelFont(new NotoSans(16))
-            ->labelAlignment(LabelAlignment::Center)
-            ->build();
-        
-        // Save QR code to file
-        $result->saveToFile($filePath);
-        
-        // Update student record with QR code path and token
-        $db = getDB();
-        $stmt = $db->prepare("UPDATE students SET qr_code = ?, qr_token = ? WHERE id = ?");
-        $stmt->execute([$qrSavePath . $filename, $token, $studentId]);
-        
-        return [
-            'success' => true,
-            'file_path' => $qrSavePath . $filename,
-            'full_path' => $filePath,
-            'token' => $token,
-            'qr_data' => $qrData
-        ];
-        
-    } catch (Exception $e) {
-        return [
-            'success' => false,
-            'error' => $e->getMessage()
-        ];
-    }
+if (isset($_GET['token'])) {
+    $qrToken = $_GET['token'];
+
+    // Generate QR code image and output it directly
+    header('Content-Type: image/png');
+
+    $result = Builder::create()
+        ->writer(new PngWriter())
+        ->data($qrToken)
+        ->encoding(new Encoding('UTF-8'))
+        ->errorCorrectionLevel(ErrorCorrectionLevel::High)
+        ->size(300)
+        ->margin(10)
+        ->roundBlockSizeMode(RoundBlockSizeMode::Margin)
+        ->build();
+
+    echo $result->getString();
+    exit;
 }
 
 /**
@@ -195,38 +151,7 @@ function deleteQRFile($filePath) {
     return true; // File doesn't exist, consider it deleted
 }
 
-/**
- * Regenerate QR code for student
- * @param int $studentId Student ID
- * @return array Result with success status
- */
-function regenerateStudentQR($studentId) {
-    try {
-        // Get student data
-        $db = getDB();
-        $stmt = $db->prepare("SELECT * FROM students WHERE id = ?");
-        $stmt->execute([$studentId]);
-        $student = $stmt->fetch();
-        
-        if (!$student) {
-            return ['success' => false, 'error' => 'Student not found'];
-        }
-        
-        // Delete old QR code file if exists
-        if ($student['qr_code']) {
-            deleteQRFile($student['qr_code']);
-        }
-        
-        // Generate new QR code
-        return generateStudentQR($studentId, $student['name']);
-        
-    } catch (Exception $e) {
-        return [
-            'success' => false,
-            'error' => $e->getMessage()
-        ];
-    }
-}
+
 
 /**
  * Get student's current QR code info

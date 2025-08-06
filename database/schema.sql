@@ -6,22 +6,37 @@ CREATE TABLE users (
     email VARCHAR(100) UNIQUE NOT NULL,
     phone VARCHAR(20),
     password VARCHAR(255) NOT NULL,
-    role ENUM('superadmin', 'admin', 'guard', 'parent') NOT NULL,
+
     status ENUM('active', 'disabled') DEFAULT 'active',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE classes (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(100) NOT NULL UNIQUE,
+    description TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE students (
     id INT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(100) NOT NULL,
-    ic_no VARCHAR(20) UNIQUE NOT NULL,
+    student_no VARCHAR(20) UNIQUE NOT NULL,
     parent_id INT NOT NULL,
+    class_id INT,
+    picture VARCHAR(255), -- path to student picture
+    gender ENUM('Male', 'Female'),
+    religion VARCHAR(50),
+    race VARCHAR(50),
     qr_code VARCHAR(255), -- path to QR code file
     qr_token VARCHAR(255), -- secure token for QR code
     status ENUM('active', 'disabled') DEFAULT 'active',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (parent_id) REFERENCES users(id)
         ON DELETE CASCADE
+        ON UPDATE CASCADE,
+    FOREIGN KEY (class_id) REFERENCES classes(id)
+        ON DELETE SET NULL
         ON UPDATE CASCADE
 );
 
@@ -89,8 +104,31 @@ CREATE TABLE password_reset_requests (
 -- Add indexes for faster scanning and queries
 CREATE INDEX idx_student_qr ON students(qr_code);
 CREATE INDEX idx_student_token ON students(qr_token);
+CREATE INDEX idx_student_student_no ON students(student_no);
+CREATE INDEX idx_student_class ON students(class_id);
 CREATE INDEX idx_parent_tokens_token ON parent_tokens(token);
 CREATE INDEX idx_inout_logs_student ON inout_logs(student_id);
 CREATE INDEX idx_inout_logs_timestamp ON inout_logs(timestamp);
 CREATE INDEX idx_password_reset_status ON password_reset_requests(status);
 CREATE INDEX idx_password_reset_user ON password_reset_requests(user_id);
+
+
+-- Profile table for user pictures and date of birth
+CREATE TABLE profiles (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    picture VARCHAR(255), -- path to profile picture
+    date_of_birth DATE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id)
+        ON DELETE CASCADE
+        ON UPDATE CASCADE
+);
+
+CREATE TABLE user_roles (
+    user_id INT NOT NULL,
+    role ENUM('superadmin', 'admin', 'guard', 'parent') NOT NULL,
+    PRIMARY KEY (user_id, role),
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
