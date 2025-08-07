@@ -118,12 +118,12 @@ include __DIR__ . '/../layouts/header.php';
             </div>
             
             <!-- Alert Messages -->
-            <?php if (!empty($message)): ?>
+            <?php if (!empty($message)) { ?>
             <div class="alert alert-<?php echo $messageType; ?> alert-dismissible fade show" role="alert">
                 <?php echo htmlspecialchars($message); ?>
                 <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
             </div>
-            <?php endif; ?>
+            <?php } ?>
             
             <!-- Statistics Cards -->
             <div class="row mb-4">
@@ -213,11 +213,8 @@ include __DIR__ . '/../layouts/header.php';
                 <div class="card-header py-3 d-flex justify-content-between align-items-center">
                     <h6 class="m-0 font-weight-bold text-primary">Admin & Guard Management</h6>
                     <div class="d-flex gap-2">
-                        <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#createAdminModal">
-                            <i class="bi bi-plus-circle"></i> Add Admin
-                        </button>
-                        <button type="button" class="btn btn-info btn-sm" data-bs-toggle="modal" data-bs-target="#createGuardModal">
-                            <i class="bi bi-plus-circle"></i> Add Guard
+                        <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#createUserModal">
+                            <i class="bi bi-plus-circle"></i> Create User
                         </button>
                     </div>
                 </div>
@@ -233,11 +230,11 @@ include __DIR__ . '/../layouts/header.php';
                                 <button type="submit" class="btn btn-outline-primary ms-2">
                                     <i class="bi bi-search"></i>
                                 </button>
-                                <?php if (!empty($search)): ?>
+                                <?php if (!empty($search)) { ?>
                                 <a href="?page=superadmin-dashboard" class="btn btn-outline-secondary ms-1">
                                     <i class="bi bi-x-circle"></i>
                                 </a>
-                                <?php endif; ?>
+                                <?php } ?>
                             </form>
                         </div>
                         <div class="col-md-6 text-end">
@@ -255,30 +252,44 @@ include __DIR__ . '/../layouts/header.php';
                                     <th>Name</th>
                                     <th>Email</th>
                                     <th>Phone</th>
-                                    <th>Role</th>
+                                    <th>Roles</th>
                                     <th>Status</th>
                                     <th>Created</th>
                                     <th>Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                <?php if (empty($users)): ?>
+                                <?php if (empty($users)) { ?>
                                 <tr>
                                     <td colspan="8" class="text-center text-muted py-4">
                                         <?php echo !empty($search) ? 'No users found matching your search.' : 'No users found.'; ?>
                                     </td>
                                 </tr>
-                                <?php else: ?>
-                                <?php foreach ($users as $user): ?>
+                                <?php } else { ?>
+                                <?php foreach ($users as $user) { ?>
                                 <tr>
                                     <td><?php echo htmlspecialchars($user['id']); ?></td>
                                     <td><?php echo htmlspecialchars($user['name']); ?></td>
                                     <td><?php echo htmlspecialchars($user['email']); ?></td>
                                     <td><?php echo htmlspecialchars($user['phone'] ?? 'N/A'); ?></td>
                                     <td>
-                                        <span class="badge bg-<?php echo $user['role'] === 'admin' ? 'primary' : 'info'; ?>">
-                                            <?php echo ucfirst($user['role']); ?>
-                                        </span>
+                                        <?php 
+                                            // Handle roles which could be a string, array, or null
+                                            $rolesData = $user['roles'] ?? '';
+                                            $rolesArray = [];
+                                            
+                                            if (is_array($rolesData)) {
+                                                $rolesArray = $rolesData;
+                                            } elseif (is_string($rolesData) && !empty($rolesData)) {
+                                                $rolesArray = explode(',', $rolesData);
+                                            }
+                                            
+                                            foreach ($rolesArray as $role) { 
+                                        ?>
+                                            <span class="badge bg-<?php echo $role === 'admin' ? 'primary' : ($role === 'guard' ? 'info' : 'success'); ?> me-1">
+                                                <?php echo ucfirst($role); ?>
+                                            </span>
+                                        <?php } // endforeach; ?>
                                     </td>
                                     <td>
                                         <span class="badge bg-<?php echo $user['status'] === 'active' ? 'success' : 'secondary'; ?>">
@@ -288,17 +299,17 @@ include __DIR__ . '/../layouts/header.php';
                                     <td><?php echo date('M j, Y', strtotime($user['created_at'])); ?></td>
                                     <td>
                                         <div class="btn-group" role="group">
-                                            <?php if ($user['status'] === 'active'): ?>
+                                            <?php if ($user['status'] === 'active') { ?>
                                             <button type="button" class="btn btn-sm btn-warning" 
                                                     onclick="updateUserStatus(<?php echo $user['id']; ?>, 'inactive')">
                                                 <i class="bi bi-pause-circle"></i> Deactivate
                                             </button>
-                                            <?php else: ?>
+                                            <?php } else { ?>
                                             <button type="button" class="btn btn-sm btn-success" 
                                                     onclick="updateUserStatus(<?php echo $user['id']; ?>, 'active')">
                                                 <i class="bi bi-play-circle"></i> Activate
                                             </button>
-                                            <?php endif; ?>
+                                            <?php } ?>
                                             <button type="button" class="btn btn-sm btn-outline-primary" 
                                                     onclick="editUser(<?php echo $user['id']; ?>)">
                                                 <i class="bi bi-pencil"></i> Edit
@@ -306,47 +317,47 @@ include __DIR__ . '/../layouts/header.php';
                                         </div>
                                     </td>
                                 </tr>
-                                <?php endforeach; ?>
-                                <?php endif; ?>
+                                <?php } ?>
+                                <?php } ?>
                             </tbody>
                         </table>
                     </div>
                     
                     <!-- Pagination -->
-                    <?php if ($totalPages > 1): ?>
+                    <?php if ($totalPages > 1) { ?>
                     <nav aria-label="Users pagination">
                         <ul class="pagination justify-content-center">
-                            <?php if ($page > 1): ?>
+                            <?php if ($page > 1) { ?>
                             <li class="page-item">
                                 <a class="page-link" href="?page=superadmin-dashboard&users_page=<?php echo $page - 1; ?><?php echo !empty($search) ? '&users_search=' . urlencode($search) : ''; ?>">
                                     Previous
                                 </a>
                             </li>
-                            <?php endif; ?>
+                            <?php } // endif; ?>
                             
                             <?php
                             $startPage = max(1, $page - 2);
                             $endPage = min($totalPages, $page + 2);
                             
-                            for ($i = $startPage; $i <= $endPage; $i++):
+                            for ($i = $startPage; $i <= $endPage; $i++) { 
                             ?>
                             <li class="page-item <?php echo $i === $page ? 'active' : ''; ?>">
                                 <a class="page-link" href="?page=superadmin-dashboard&users_page=<?php echo $i; ?><?php echo !empty($search) ? '&users_search=' . urlencode($search) : ''; ?>">
                                     <?php echo $i; ?>
                                 </a>
                             </li>
-                            <?php endfor; ?>
+                            <?php } // endfor; ?>
                             
-                            <?php if ($page < $totalPages): ?>
+                            <?php if ($page < $totalPages) { ?>
                             <li class="page-item">
                                 <a class="page-link" href="?page=superadmin-dashboard&users_page=<?php echo $page + 1; ?><?php echo !empty($search) ? '&users_search=' . urlencode($search) : ''; ?>">
                                     Next
                                 </a>
                             </li>
-                            <?php endif; ?>
+                            <?php } // endif; ?>
                         </ul>
                     </nav>
-                    <?php endif; ?>
+                    <?php } // endif; ?>
                 </div>
             </div>
             
@@ -516,86 +527,69 @@ include __DIR__ . '/../layouts/header.php';
         </div>
     </div>
 </div>
+    </main>
+    </div>
+    </div>
+</div>
 
-<!-- Create Admin Modal -->
-<div class="modal fade" id="createAdminModal" tabindex="-1">
+        <!-- Create User Modal -->
+<div class="modal fade" id="createUserModal" tabindex="-1" aria-labelledby="createUserModalLabel" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">Create Admin Account</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                <h5 class="modal-title" id="createUserModalLabel">Create New User Account</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <form method="POST" action="">
+            <form id="createUserForm" method="POST" action="">
                 <div class="modal-body">
-                    <input type="hidden" name="action" value="create_admin">
+                    <input type="hidden" name="action" value="create_user">
                     
                     <div class="mb-3">
-                        <label for="admin_name" class="form-label">Full Name</label>
-                        <input type="text" class="form-control" id="admin_name" name="name" required>
+                        <label for="user_name" class="form-label">Full Name</label>
+                        <input type="text" class="form-control" id="user_name" name="name" required>
                     </div>
                     
                     <div class="mb-3">
-                        <label for="admin_email" class="form-label">Email Address</label>
-                        <input type="email" class="form-control" id="admin_email" name="email" required>
+                        <label for="user_email" class="form-label">Email Address</label>
+                        <input type="email" class="form-control" id="user_email" name="email" required>
                     </div>
                     
                     <div class="mb-3">
-                        <label for="admin_phone" class="form-label">Phone Number (Optional)</label>
-                        <input type="tel" class="form-control" id="admin_phone" name="phone">
+                        <label for="user_phone" class="form-label">Phone Number (Optional)</label>
+                        <input type="tel" class="form-control" id="user_phone" name="phone">
                     </div>
                     
                     <div class="mb-3">
-                        <label for="admin_password" class="form-label">Password</label>
-                        <input type="password" class="form-control" id="admin_password" name="password" required minlength="6">
+                        <label for="user_password" class="form-label">Password</label>
+                        <input type="password" class="form-control" id="user_password" name="password" required minlength="6">
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="user_roles" class="form-label">Assign Roles</label>
+                        <div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="checkbox" id="role_admin" name="roles[]" value="admin">
+                                <label class="form-check-label" for="role_admin">Admin</label>
+                            </div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="checkbox" id="role_guard" name="roles[]" value="guard">
+                                <label class="form-check-label" for="role_guard">Guard</label>
+                            </div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="checkbox" id="role_parent" name="roles[]" value="parent">
+                                <label class="form-check-label" for="role_parent">Parent</label>
+                            </div>
+                        </div>
                     </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-primary">Create Admin</button>
+                    <button type="submit" class="btn btn-primary">Create User</button>
                 </div>
             </form>
         </div>
     </div>
 </div>
-
-<!-- Create Guard Modal -->
-<div class="modal fade" id="createGuardModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Create Guard Account</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <form method="POST" action="">
-                <div class="modal-body">
-                    <input type="hidden" name="action" value="create_guard">
-                    
-                    <div class="mb-3">
-                        <label for="guard_name" class="form-label">Full Name</label>
-                        <input type="text" class="form-control" id="guard_name" name="name" required>
-                    </div>
-                    
-                    <div class="mb-3">
-                        <label for="guard_email" class="form-label">Email Address</label>
-                        <input type="email" class="form-control" id="guard_email" name="email" required>
-                    </div>
-                    
-                    <div class="mb-3">
-                        <label for="guard_phone" class="form-label">Phone Number (Optional)</label>
-                        <input type="tel" class="form-control" id="guard_phone" name="phone">
-                    </div>
-                    
-                    <div class="mb-3">
-                        <label for="guard_password" class="form-label">Password</label>
-                        <input type="password" class="form-control" id="guard_password" name="password" required minlength="6">
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-info">Create Guard</button>
-                </div>
-            </form>
-        </div>
     </div>
 </div>
 

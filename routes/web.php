@@ -66,6 +66,50 @@ $routes = [
 
 // Handle routing
 function handleRoute($page, $routes) {
+    global $superadminController; // Access the global controller instance
+
+    // Handle POST requests for superadmin-dashboard
+    if ($page === 'superadmin-dashboard' && $_SERVER['REQUEST_METHOD'] === 'POST') {
+        if (isset($_POST['action'])) {
+            switch ($_POST['action']) {
+                case 'create_user':
+                    $result = $superadminController->createUser($_POST);
+                    if ($result['success']) {
+                        $_SESSION['success_message'] = $result['message'];
+                    } else {
+                        $_SESSION['error_message'] = implode('<br>', $result['errors']);
+                    }
+                    header('Location: ' . $_ENV['BASE_URL'] . '?page=superadmin-dashboard');
+                    exit;
+                case 'update_user_status':
+                    $userId = $_POST['user_id'] ?? null;
+                    $status = $_POST['status'] ?? null;
+                    if ($userId && $status) {
+                        $result = $superadminController->updateUserStatus($userId, $status);
+                        if ($result['success']) {
+                            $_SESSION['success_message'] = $result['message'];
+                        } else {
+                            $_SESSION['error_message'] = $result['message'];
+                        }
+                    }
+                    header('Location: ' . $_ENV['BASE_URL'] . '?page=superadmin-dashboard');
+                    exit;
+                case 'delete_user':
+                    $userId = $_POST['user_id'] ?? null;
+                    if ($userId) {
+                        $result = $superadminController->deleteUser($userId);
+                        if ($result['success']) {
+                            $_SESSION['success_message'] = $result['message'];
+                        } else {
+                            $_SESSION['error_message'] = $result['message'];
+                        }
+                    }
+                    header('Location: ' . $_ENV['BASE_URL'] . '?page=superadmin-dashboard');
+                    exit;
+            }
+        }
+    }
+
     error_log("handleRoute invoked for page: " . $page . ", method: " . $_SERVER['REQUEST_METHOD']);
     
     if (isset($routes[$page])) {
@@ -147,6 +191,12 @@ function show404() {
     echo "<p>The requested page could not be found.</p>";
     echo "<a href='/'>Go to Home</a>";
 }
+
+// Include controllers
+require_once __DIR__ . '/../controllers/SuperadminController.php';
+
+// Instantiate controllers
+$superadminController = new SuperadminController();
 
 // Execute routing
 handleRoute($page, $routes);

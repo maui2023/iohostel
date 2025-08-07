@@ -6,128 +6,30 @@ class SuperadminController {
     public function __construct() {
         $this->db = Database::getInstance()->getConnection();
     }
-    
-    /**
-     * Create a new admin account
-     */
+
     public function createAdmin($data) {
-        try {
-            // Validate input
-            $errors = $this->validateUserData($data, 'admin');
-            if (!empty($errors)) {
-                return ['success' => false, 'errors' => $errors];
-            }
-            
-            // Check if email already exists
-            if ($this->emailExists($data['email'])) {
-                return ['success' => false, 'errors' => ['email' => 'Email already exists']];
-            }
-            
-            // Check if phone already exists (if provided)
-            if (!empty($data['phone']) && $this->phoneExists($data['phone'])) {
-                return ['success' => false, 'errors' => ['phone' => 'Phone number already exists']];
-            }
-            
-            // Hash password
-            $hashedPassword = password_hash($data['password'], PASSWORD_DEFAULT);
-            
-            // Insert admin user
-            $sql = "INSERT INTO users (name, email, phone, password, status, created_at) 
-                    VALUES (?, ?, ?, ?, 'active', NOW())";
-            
-            $stmt = $this->db->prepare($sql);
-            $result = $stmt->execute([
-                $data['name'],
-                $data['email'],
-                $data['phone'] ?? null,
-                $hashedPassword
-            ]);
-            
-            if ($result) {
-                $userId = $this->db->lastInsertId();
-                // Assign 'admin' role to the new user
-                $stmtRole = $this->db->prepare("INSERT INTO user_roles (user_id, role) VALUES (?, 'admin')");
-                $stmtRole->execute([$userId]);
-
-                return [
-                    'success' => true, 
-                    'message' => 'Admin account created successfully',
-                    'user_id' => $userId
-                ];
-            } else {
-                return ['success' => false, 'errors' => ['general' => 'Failed to create admin account']];
-            }
-            
-        } catch (PDOException $e) {
-            error_log("Error creating admin: " . $e->getMessage());
-            return ['success' => false, 'errors' => ['general' => 'Database error occurred']];
-        }
+        $data['roles'] = ['admin'];
+        return $this->createUser($data);
     }
-    
-    /**
-     * Create a new guard account
-     */
+
     public function createGuard($data) {
-        try {
-            // Validate input
-            $errors = $this->validateUserData($data, 'guard');
-            if (!empty($errors)) {
-                return ['success' => false, 'errors' => $errors];
-            }
-            
-            // Check if email already exists
-            if ($this->emailExists($data['email'])) {
-                return ['success' => false, 'errors' => ['email' => 'Email already exists']];
-            }
-            
-            // Check if phone already exists (if provided)
-            if (!empty($data['phone']) && $this->phoneExists($data['phone'])) {
-                return ['success' => false, 'errors' => ['phone' => 'Phone number already exists']];
-            }
-            
-            // Hash password
-            $hashedPassword = password_hash($data['password'], PASSWORD_DEFAULT);
-            
-            // Insert guard user
-            $sql = "INSERT INTO users (name, email, phone, password, status, created_at) 
-                    VALUES (?, ?, ?, ?, 'active', NOW())";
-            
-            $stmt = $this->db->prepare($sql);
-            $result = $stmt->execute([
-                $data['name'],
-                $data['email'],
-                $data['phone'] ?? null,
-                $hashedPassword
-            ]);
-            
-            if ($result) {
-                $userId = $this->db->lastInsertId();
-                // Assign 'guard' role to the new user
-                $stmtRole = $this->db->prepare("INSERT INTO user_roles (user_id, role) VALUES (?, 'guard')");
-                $stmtRole->execute([$userId]);
-
-                return [
-                    'success' => true, 
-                    'message' => 'Guard account created successfully',
-                    'user_id' => $userId
-                ];
-            } else {
-                return ['success' => false, 'errors' => ['general' => 'Failed to create guard account']];
-            }
-            
-        } catch (PDOException $e) {
-            error_log("Error creating guard: " . $e->getMessage());
-            return ['success' => false, 'errors' => ['general' => 'Database error occurred']];
-        }
+        $data['roles'] = ['guard'];
+        return $this->createUser($data);
     }
     
     /**
-     * Create a new parent account
+     * Create a new user account with specified roles
      */
-    public function createParent($data) {
+    public function createUser($data) {
         try {
             // Validate input
-            $errors = $this->validateUserData($data, 'parent');
+            // Roles are now an array, so validate accordingly
+            if (!isset($data['roles']) || !is_array($data['roles']) || empty($data['roles'])) {
+                return ['success' => false, 'errors' => ['roles' => 'At least one role must be selected']];
+            }
+
+            // Use a generic validation for user data, roles will be handled separately
+            $errors = $this->validateUserData($data);
             if (!empty($errors)) {
                 return ['success' => false, 'errors' => $errors];
             }
@@ -145,7 +47,7 @@ class SuperadminController {
             // Hash password
             $hashedPassword = password_hash($data['password'], PASSWORD_DEFAULT);
             
-            // Insert parent user
+            // Insert user
             $sql = "INSERT INTO users (name, email, phone, password, status, created_at) 
                     VALUES (?, ?, ?, ?, 'active', NOW())";
             
@@ -159,21 +61,24 @@ class SuperadminController {
             
             if ($result) {
                 $userId = $this->db->lastInsertId();
-                // Assign 'parent' role to the new user
-                $stmtRole = $this->db->prepare("INSERT INTO user_roles (user_id, role) VALUES (?, 'parent')");
-                $stmtRole->execute([$userId]);
+                
+                // Assign selected roles to the new user
+                $stmtRole = $this->db->prepare("INSERT INTO user_roles (user_id, role) VALUES (?, ?)");
+                foreach ($data['roles'] as $role) {
+                    $stmtRole->execute([$userId, $role]);
+                }
 
                 return [
                     'success' => true, 
-                    'message' => 'Parent account created successfully',
+                    'message' => 'User account created successfully',
                     'user_id' => $userId
                 ];
             } else {
-                return ['success' => false, 'errors' => ['general' => 'Failed to create parent account']];
+                return ['success' => false, 'errors' => ['general' => 'Failed to create user account']];
             }
             
         } catch (PDOException $e) {
-            error_log("Error creating parent: " . $e->getMessage());
+            error_log("Error creating user: " . $e->getMessage());
             return ['success' => false, 'errors' => ['general' => 'Database error occurred']];
         }
     }
@@ -190,13 +95,10 @@ class SuperadminController {
             $sql = "SELECT u.id, u.name, u.email, u.phone, u.status, u.created_at, GROUP_CONCAT(ur.role) as roles
                     FROM users u
                     JOIN user_roles ur ON u.id = ur.user_id
-                    WHERE ur.role IN ('admin', 'guard')";
+";
             
-            // Add role filter
-            if ($role) {
-                $sql .= " AND ur.role = ?";
-                $params[] = $role;
-            }
+            // No role filter here, as we want all users with their roles
+            // The GROUP_CONCAT handles multiple roles per user
             
             // Add search filter
             if (!empty($search)) {
@@ -207,7 +109,7 @@ class SuperadminController {
             }
             
             // Add ordering and pagination
-            $sql .= " GROUP BY u.id ORDER BY u.name LIMIT ? OFFSET ?";
+            $sql .= " GROUP BY u.id ORDER BY u.id LIMIT ? OFFSET ?";
             $params[] = $limit;
             $params[] = $offset;
             
@@ -232,7 +134,7 @@ class SuperadminController {
             $sql = "SELECT COUNT(DISTINCT u.id) as total 
                     FROM users u
                     JOIN user_roles ur ON u.id = ur.user_id
-                    WHERE ur.role IN ('admin', 'guard')";
+";
             
             if ($role) {
                 $sql .= " AND ur.role = ?";
@@ -268,7 +170,7 @@ class SuperadminController {
                 return ['success' => false, 'message' => 'Invalid status'];
             }
             
-            $sql = "UPDATE users SET status = ? WHERE id = ? AND id IN (SELECT user_id FROM user_roles WHERE role IN ('admin', 'guard'))";
+            $sql = "UPDATE users SET status = ? WHERE id = ?";
             $stmt = $this->db->prepare($sql);
             $result = $stmt->execute([$status, $userId]);
             
@@ -293,13 +195,17 @@ class SuperadminController {
             $sql = "SELECT u.id, u.name, u.email, u.phone, u.status, u.created_at, GROUP_CONCAT(ur.role) as roles
                     FROM users u
                     JOIN user_roles ur ON u.id = ur.user_id
-                    WHERE u.id = ? AND ur.role IN ('admin', 'guard')
+                    WHERE u.id = ?
                     GROUP BY u.id";
             
             $stmt = $this->db->prepare($sql);
             $stmt->execute([$userId]);
             
-            return $stmt->fetch(PDO::FETCH_ASSOC);
+            $user = $stmt->fetch(PDO::FETCH_ASSOC);
+            if ($user && isset($user['roles'])) {
+                $user['roles'] = explode(',', $user['roles']);
+            }
+            return $user;
             
         } catch (PDOException $e) {
             error_log("Error fetching user: " . $e->getMessage());
@@ -329,12 +235,12 @@ class SuperadminController {
             }
             
             // Prepare update query
-            $sql = "UPDATE users SET name = ?, email = ?, phone = ? WHERE id = ? AND id IN (SELECT user_id FROM user_roles WHERE role IN ('admin', 'guard'))";
+            $sql = "UPDATE users SET name = ?, email = ?, phone = ? WHERE id = ?";
             $params = [$data['name'], $data['email'], $data['phone'] ?? null, $userId];
             
             // Add password update if provided
             if (!empty($data['password'])) {
-                $sql = "UPDATE users SET name = ?, email = ?, phone = ?, password = ? WHERE id = ? AND id IN (SELECT user_id FROM user_roles WHERE role IN ('admin', 'guard'))";
+                $sql = "UPDATE users SET name = ?, email = ?, phone = ?, password = ? WHERE id = ?";
                 $hashedPassword = password_hash($data['password'], PASSWORD_DEFAULT);
                 $params = [$data['name'], $data['email'], $data['phone'] ?? null, $hashedPassword, $userId];
             }
@@ -361,8 +267,8 @@ class SuperadminController {
         try {
             // Check if user exists and is an admin/guard
             $user = $this->getUserById($userId);
-            if (!$user || (!in_array('admin', explode(',', $user['roles'])) && !in_array('guard', explode(',', $user['roles'])))) {
-                return ['success' => false, 'message' => 'User not found or not an admin/guard'];
+            if (!$user) {
+                return ['success' => false, 'message' => 'User not found'];
             }
 
             // Start a transaction
@@ -481,7 +387,7 @@ class SuperadminController {
     /**
      * Validate user data
      */
-    private function validateUserData($data, $role = null, $excludeUserId = null) {
+    private function validateUserData($data, $excludeUserId = null) {
         $errors = [];
         
         // Name validation
